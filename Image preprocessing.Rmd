@@ -1,0 +1,80 @@
+---
+title: "Image preprocessing"
+author: "Ian"
+date: "2023-04-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## (Will explore more and update this file)
+
+## Load libraries
+```{r, message=FALSE, warning=FALSE}
+library(EBImage)
+library(imager)
+library(SpatialPack)
+
+###If you haven't install
+#install.packages("BiocManager")
+#BiocManager::install("EBImage")
+
+#install.packages(c("imager"),("SpatialPack"))
+```
+
+## Load image
+```{r}
+img = load.image("data/Biotechnology_small/data_processed/cell_images/cluster_1/cell_4759.png")
+img = resize(img,50,50)
+EBImage::display(img, method = "raster")
+```
+
+Filter-library(SpatialPack): https://search.r-project.org/CRAN/refmans/SpatialPack/html/denoise.html
+not sure if this one is that useful.
+```{r}
+img_denoise = denoise(as.matrix(img), type="Lee", looks = 0.05, damping = 0.1)
+par(mfrow=c(1,2))
+EBImage::display(img, method = "raster")
+EBImage::display(img_denoise, method = "raster")
+```
+
+Power law
+what is power law: 
+https://www.tutorialspoint.com/dip/gray_level_transformations.htm#:~:text=Power%20%E2%80%93%20Law%20transformations&text=This%20type%20of%20transformation%20is,displayed%20on%20CRT%20is%20dark.
+```{r}
+gamma <- 2.5
+img_transformed <- 255 * (img / 255) ^ gamma 
+par(mfrow=c(1,2))
+plot(img, main="Original Image")
+plot(img_transformed, main="Transformed Image")
+```
+
+
+EBImage
+Thresholding + Opening
+Opening(wikipedia): removes small objects from the foreground (usually taken as the bright pixels) of an image, placing them in the background
+```{r}
+###If the image is 50*50 use the 3*3 window, but if we use the original image we will need a bigger window size, like w=10,h=10
+#nmask = thresh(img, w=10, h=10, offset=0.05)
+nmask = thresh(img, w=3, h=3, offset=0.05)
+nmask = opening(nmask, makeBrush(3, shape='diamond'))
+
+par(mfrow=c(1,2))
+plot(img, main="Original Image")
+plot(nmask, main="nmask")
+```
+
+## Resources
+
+Video - Bioimage Analysis 2: Pre-Processing (How people deal with cell images): 
+https://www.youtube.com/watch?v=MIDK8BqJY_8
+
+Video - Bioimage Analysis 3: Segmentation (Thresholding, outline): 
+https://www.youtube.com/watch?v=jLd2I2adQtw
+
+Introduction to EBImage:  
+https://bioconductor.org/packages/devel/bioc/vignettes/EBImage/inst/doc/EBImage-introduction.html#1_Getting_started
+
+
