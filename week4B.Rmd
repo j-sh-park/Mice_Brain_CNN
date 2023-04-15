@@ -1,0 +1,442 @@
+---
+title: "week4B"
+output: html_document
+date: "2023-03-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+#install.packages("BiocManager")
+#BiocManager::install("EBImage")
+library(EBImage)
+library(tidyverse)
+library(pracma)
+library(randomForest)
+library(ggimage)
+```
+## 1.1 Reading the data
+```{r}
+cluster_A_files = list.files("data/Biotechnology_small/data_processed/cell_images/cluster_8/",
+                             full.names = TRUE)
+
+cluster_B_files = list.files("data/Biotechnology_small/data_processed/cell_images/cluster_13/",
+                             full.names = TRUE)
+```
+
+## 1.2 Simple visualisation
+
+```{r}
+img = readImage(cluster_A_files[1])
+img
+```
+```{r}
+EBImage::display(img, method = "raster")
+EBImage::display(img/quantile(img,0.99), method = "raster")
+```
+
+```{r}
+EBImage::display(img*5, method = "raster")
+```
+
+This image has dimension of 105, 108. Dividing by the 99th quantile adjusts the brightness. Multiplying by a factor adjusts the contrast.
+
+Read in all the images of Cluster A as a list. Here we will resize all images to 50x50 pixels and tile them.
+
+```{r}
+cluster_A_imgs = sapply(cluster_A_files, readImage, simplify = FALSE)
+cluster_A_imgs_resized = lapply(cluster_A_imgs, resize, w = 50, h = 50)
+cluster_A_imgs_tiled = tile(EBImage::combine(cluster_A_imgs_resized))
+display(cluster_A_imgs_tiled)
+```
+
+```{r}
+cluster_B_imgs = sapply(cluster_B_files, readImage, simplify = FALSE)
+cluster_B_imgs_resized = lapply(cluster_B_imgs, resize, w = 50, h = 50)
+cluster_B_imgs_tiled = tile(EBImage::combine(cluster_B_imgs_resized))
+display(cluster_B_imgs_tiled)
+```
+
+# 2 Incorporating cell boundaries for a single cell
+
+## 2.1 Load cell boundaries
+Load the cell boundaries file. Keep only the cell boundary vertices that belong to the cells in Cluster A and Cluster B.
+
+Note that we will need to align the cell boundaries with the pixel values.
+```{r}
+cell_boundaries_raw = read.csv("data/Biotechnology_small/data_processed/cell_boundaries.csv.gz")
+
+cluster_A_cell_ids = gsub(".*cell_|.png", "", cluster_A_files)
+cluster_B_cell_ids = gsub(".*cell_|.png", "", cluster_B_files)
+
+cell_boundaries = cell_boundaries_raw |>
+  filter(cell_id %in% c(cluster_A_cell_ids, cluster_B_cell_ids))
+```
+Recall that the cell images are extracted from a much larger image. Using our knowledge of the experiment, we can rescale the cell boundary points according to the magnification factor, 1 pixel = 0.2125 micrometres, and to ensure that the start of the pixel coordinates matches with the cell image. We add 1 since because the pixels are represented in an array, which index at 1, while the cell boundaries would start at 0.
+
+```{r}
+i = 1
+
+cell_boundary = cell_boundaries |>
+  filter(cell_id %in% cluster_A_cell_ids[i])
+
+cell_boundary
+```
+
+```{r}
+# rescale the boundary according to the pixels
+pixels = dim(img)
+cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+
+# visualise the image with the cell boundary
+display(img, method = "raster")
+points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
+```
+
+## 2.2 Identify pixels inside and outside of cell
+```{r}
+# identify which pixels are inside or outside of the cell segment using inpolygon
+pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+
+pixels_inside = inpolygon(x = pixel_locations[,1],
+                          y = pixel_locations[,2],
+                          xp = cell_boundary$vertex_x_scaled,
+                          yp = cell_boundary$vertex_y_scaled,
+                          boundary = TRUE)
+
+img_inside = img
+img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+
+display(img_inside, method = "raster")
+```
+[a] Use an operation to create a masked image, i.e. all pixels outside of the cell boundary should be set to zero intensity.
+[b] Display the masked image with the cell boundary overlaid.
+
+```{r}
+img_mask = img*img_inside
+
+display(img_mask, method = "raster")
+points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
+```
+We can resize the masked image to the same 50x50 pixels. We would need to rescale the cell boundary coordinates in order to match this.
+```{r}
+img_mask_resized = resize(img_mask, 50, 50)
+
+# this can be displayed once more with the polygon rescaled too
+display(img_mask_resized, method = "raster")
+points(cell_boundary$vertex_x_scaled*50/nrow(img_mask),
+       cell_boundary$vertex_y_scaled*50/ncol(img_mask), type = "b", lwd = 10, col = "yellow")
+```
+
+# 3 Incorporating cell boundaries for all cells
+## 3.1 Mask and resize for all cells
+Mask and resize the images for all images inside Cluster A and Cluster B. Write a function that takes in the image, cell boundaries and cell name, most is filled out below but you will need to add some components from the previous section.
+```{r}
+get_inside = function(cellID, img, cell_boundaries) {
+  
+  cell_boundary = cell_boundaries |>
+    filter(cell_id %in% cellID)
+  
+  # rescale the boundary according to the pixels
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  # identify which pixels are inside or outside of the cell segment using inpolygon
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1],
+                            y = pixel_locations[,2],
+                            xp = cell_boundary$vertex_x_scaled,
+                            yp = cell_boundary$vertex_y_scaled,
+                            boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  
+  img_mask = img*img_inside
+  
+  # then, transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+```
+Test your function works the way you expect it. You should get the same image as before. And then perform this for all cells.
+
+[a] Perform the same operations for cells in cluster B.
+[b] Visualise the masked and tiled cells for cluster B. Submit this image for formative feedback. (Hint: use the writeImage function in EBImage package to write an image object to a file.)
+
+```{r}
+display(mask_resize(cluster_A_imgs[[1]], get_inside(cluster_A_cell_ids[1], cluster_A_imgs[[1]], cell_boundaries)),
+        method = "raster")
+```
+
+```{r}
+cluster_A_imgs_inside = mapply(get_inside, cluster_A_cell_ids, cluster_A_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_A_imgs_masked_resized = mapply(mask_resize, cluster_A_imgs, cluster_A_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_A_imgs_inside[[1]], method = "raster")
+```
+
+```{r}
+display(tile(EBImage::combine(cluster_A_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_B_imgs_inside = mapply(get_inside, cluster_B_cell_ids, cluster_B_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_B_imgs_masked_resized = mapply(mask_resize, cluster_B_imgs, cluster_B_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_B_imgs_inside[[1]], method = "raster")
+```
+
+```{r}
+display(tile(EBImage::combine(cluster_B_imgs_masked_resized)), method = "raster")
+```
+
+
+# 4 Classifying images using Random Forest
+## 4.1 Pixel-based classical machine learning
+NOTE From this point, all code is provided and questions are towards understanding the code and outputs.
+
+We will train a random forest classifier that uses the pixel values of all images to predict cells into cluster A and cluster B identities.
+
+Then we will identify the most important features (pixels) for this classification. Note in this case our model contains all the data.
+
+1.[a] What issues might we foresee?
+
+cells not aligned to each other
+pixel intensities not normalised
+model not complex enough to capture more complex shapes
+2.[b] Looking at the image displaying the importance for the random forest model, what does the bright areas correspond to?
+
+```{r}
+y = factor(rep(c("cluster_A", "cluster_B"), times = c(length(cluster_A_cell_ids), length(cluster_B_cell_ids))))
+x = cbind(do.call(cbind, lapply(cluster_A_imgs_masked_resized,c)),
+          do.call(cbind, lapply(cluster_B_imgs_masked_resized,c)))
+
+rf = randomForest(x = t(x), y = y)
+rf
+```
+
+```{r}
+importance_img = Image(data = matrix(rf$importance, 50, 50))
+display(importance_img/quantile(importance_img, 0.99), method = "raster")
+```
+
+## 4.2 Extracted feature classical machine learning
+Now, we are going to extract features for each image using the computeFeatures function in the EBImage package. This uses a suite of calculations on the pixel-level data to extract specific quantities, and are described further in the documentation help(computeFeatures).
+
+1. [a] What issues might we foresee?
+
+  1. lack of interpretation of the features
+  2. Some features may not be distinguishing the two groups and contribute noise
+2.[b] Interpret the output of randomForest(). Which model is better, pixel-based or features-based? How might you be able to tell?
+
+  1.On face value examining the out-of-bag error estimate we can guess that the pixel-based classifier is better, however we would need to assess this in a more comprehensive way using cross-validation.
+  2.We can also note that the pixel-based classifier enables some degree of interpretation, in that we can visualise the spatial regions that are important for classifying the cells to each of the groups. We could also calculate the importance for the image features, but these are less straightforward to understand.
+  
+```{r}
+computeFeatures(img_inside, img_mask)
+```
+```{r}
+cluster_A_img_features = mapply(computeFeatures,
+                                x = cluster_A_imgs_inside,
+                                ref = cluster_A_imgs,
+                                MoreArgs = list(expandRef = NULL))
+cluster_B_img_features = mapply(computeFeatures,
+                                x = cluster_B_imgs_inside,
+                                ref = cluster_B_imgs,
+                                MoreArgs = list(expandRef = NULL))
+
+xf = cbind(cluster_A_img_features, cluster_B_img_features)
+
+rff = randomForest(x = t(xf), y = y)
+rff
+```
+
+Since it’s not so straightforward to graph the extracted features like we did with the pixels, we can examine the images in terms of the extracted features using PCA. We can use geom_image from the ggimage package to simultaneously visualise the cell images.
+
+```{r}
+pc = princomp(t(xf), cor = TRUE)
+
+features_pc_df = data.frame(PC1 = pc$scores[,1],
+                            PC2 = pc$scores[,2],
+                            cluster = y,
+                            image = c(cluster_A_files, cluster_B_files))
+
+ggplot(features_pc_df, aes(x = PC1, y = PC2)) + 
+  geom_point(aes(colour = cluster)) + 
+  geom_image(aes(image = image), size = 0.03)
+```
+
+# 5 Exposure to deep learning
+```{r}
+#if (!require("BiocManager", quietly=TRUE)) install.packages("BiocManager")
+#BiocManager::install("remotes")
+#BiocManager::install("aoles/RBioFormats")
+```
+```{r echo=FALSE}
+#Sys.setenv(TENSORFLOW_PYTHON="/path/to/virtualenv/python/binary")
+#devtools::install_github("rstudio/tensorflow")
+library(tensorflow)
+library(reticulate)
+#py_discover_config("tensorflow")
+```
+
+```{r}
+devtools::install_github("rstudio/tensorflow")
+Sys.setenv(TENSORFLOW_PYTHON="/usr/bin/python")
+library(tensorflow)
+```
+```{r}
+library(RBioFormats)
+library(tensorflow)
+library(reticulate)
+library(keras)
+```
+## 5.1 Convolutional neural network deep learning model
+In this step, we represent our image data as a four-dimensional array, where dimensions correspond to images, x-axis, y-axis, and channel.
+
+The channel dimension is set to one since our images are in greyscale, but this could be extended to three channels to correspond to RGB for coloured images.
+
+Note: The call to set.seed needs to be done before the call to library(keras) to actually ensure repeated code execution is reproducible.
+```{r}
+set.seed(2023)
+library(keras)
+tensorflow::set_random_seed(2023)
+
+imgs_masked_resized_64 = mapply(mask_resize, c(cluster_A_imgs, cluster_B_imgs),
+                                 c(cluster_A_imgs_inside, cluster_B_imgs_inside),
+                                 MoreArgs = list(w = 64, h = 64), SIMPLIFY = FALSE)
+
+num_images = length(imgs_masked_resized_64)
+img_names <- names(imgs_masked_resized_64)
+
+x <- array(dim=c(num_images, 64, 64, 1))
+
+for (i in 1:num_images) {
+  x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
+}
+
+input_shape = dim(x)[2:4]
+```
+In this next chunk, we set the model architecture. This is the set of transformations that we do to the data while training and extracting the corresponding weights. You can make some assessment in terms of which layers could be removed or added, and how this could affect the downstream classification outcome.
+
+We can examine the model architecture, including examining the output shape. Note that the final output shape is of size (None, 2), where the 2 corresponds to our task to classify the cells into two groups.
+```{r}
+model_function <- function(learning_rate = 0.001) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu', input_shape = input_shape) %>% 
+    layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
+    layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+    layer_dropout(rate = 0.25) %>% 
+    layer_flatten() %>% 
+    layer_dense(units = 128, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    layer_dense(units = 64) %>% 
+    layer_dropout(rate = 0.5) %>% 
+    layer_dense(units = 2, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "binary_crossentropy",
+    optimizer = optimizer_adam(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+
+# Let this model compile and inspect its architecture
+
+model <- model_function()
+model
+```
+Now we fit the model using our training data. x is as generated earlier, and we use model.matrix() (Refer to the Kidney lab) to expand the y outcome factor into a matrix of assignment to each group.
+
+As the model fits, we will observe the learning curves. This indicates the current status of the model’s quality. Typically the high number of epochs the better, but once the accuracy appears to have stabilised, then additional epochs may not improve performance.
+
+```{r}
+batch_size <- 32
+epochs <- 100
+
+yy = model.matrix(~ y - 1)
+head(yy)
+```
+
+```{r}
+# the model history
+hist <- model %>% fit(
+  x = x,
+  y = yy,
+  batch_size = batch_size,
+  steps_per_epoch = num_images %/% batch_size,
+  epochs = epochs, 
+  validation_split = 0.2,
+  verbose = 2
+)
+
+plot(hist)
+```
+
+Now that we have trained the model, we can use it to predict new data. For each observation the prediction is two values corresponding to each class. To extract a specific class prediction, we select the class with the highest prediction value via the which.max function applied over each row.
+
+Note that this prediction is a resubstitution, because we are using the same data that we used to train the deep learning model.
+
+```{r}
+pred <- model %>% predict(x)
+head(pred)
+```
+
+```{r}
+pred_class = apply(pred, 1, which.max)
+pred_class
+```
+
+And once we have a class prediction, we can construct a confusion matrix and calculate a resubstitution error rate.
+
+```{r}
+# confusion matrix
+table(pred_class, y)
+```
+
+```{r}
+# get the error
+1-(sum(diag(table(pred_class, y)))/length(y))
+```
+
+## 5.2 Intermediate deep learning data values
+The deep learning model contains several layers. We can extract the intermediate values for the data that was used to train it. In this case we extract the dense_1 layer which is of shape 64. We can use PCA as a tool to help us visualise and try to understand more about the training data and the model, by reducing the dimensionality from 64 dimensions to two.
+```{r}
+layer_name <- 'dense_1'
+intermediate_layer_model <- keras_model(inputs = model$input,
+                                        outputs = get_layer(model, layer_name)$output)
+intermediate_output <- intermediate_layer_model %>% predict(x)
+
+pc_intermediate = princomp(intermediate_output, cor = TRUE)
+
+features_pc_df_intermediate = data.frame(PC1 = pc_intermediate$scores[,1],
+                            PC2 = pc_intermediate$scores[,2],
+                            cluster = y,
+                            image = c(cluster_A_files, cluster_B_files),
+                            predicted = paste0("cluster_", apply(pred, 1, which.max)))
+
+ggplot(features_pc_df_intermediate, aes(x = PC1, y = PC2)) + 
+  geom_point(aes(colour = cluster)) + 
+  geom_image(aes(image = image), size = 0.03)
+```
