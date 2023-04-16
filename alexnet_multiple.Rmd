@@ -1,0 +1,224 @@
+---
+title: "alexnet"
+output: html_document
+date: "2023-03-27"
+---
+```{r setup, warning=FALSE}
+library(tidyverse)
+library(EBImage)
+library(pracma)
+library(randomForest)
+library(ggimage)
+```
+
+```{r}
+get_inside = function(cellID, img, cell_boundaries) {
+  
+  cell_boundary = cell_boundaries |>
+    filter(cell_id %in% cellID)
+  
+  # rescale the boundary according to the pixels
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  # identify which pixels are inside or outside of the cell segment using inpolygon
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1],
+                            y = pixel_locations[,2],
+                            xp = cell_boundary$vertex_x_scaled,
+                            yp = cell_boundary$vertex_y_scaled,
+                            boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  
+  img_mask = img*img_inside
+  
+  # then, transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+
+# modified code from James
+get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
+{
+  clusters = list.files(img_clusters_folder_path)
+  clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
+  clusters_ids = names(clusters)
+
+  cell_boundaries = read.csv(cell_boundaries_path)
+
+  out = list(list(), c())
+
+  for (c in seq(to = length(clusters_ids)))
+  {
+    cluster = list.files(clusters[c], full.names=TRUE)
+    cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
+    cluster = sapply(cluster, readImage, simplify=FALSE)
+
+    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+    cluster_resized = mapply(mask_resize, cluster, cluster_inside, MoreArgs = list(w=w, h=h), SIMPLIFY = FALSE)
+    out[[1]] = append(out[[1]], cluster_resized)
+    out[[2]] = c(out[[2]], rep(clusters_ids[c], times=length(cluster_cell_ids)))
+  }
+
+  return(out)
+  # return(clusters)
+}
+```
+
+```{r}
+imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 64, 64)
+```
+
+# Deep Learning
+```{r, warning=FALSE, message=FALSE}
+library(reticulate)
+library(RBioFormats)
+library(keras)
+library(tensorflow)
+tensorflow::set_random_seed(2023)
+
+imgs_masked_resized_64 = imgs_cleaned[[1]]
+num_images = length(imgs_masked_resized_64)
+img_names <- names(imgs_masked_resized_64)
+x <- array(dim=c(num_images, 64, 64, 1))
+for (i in 1:num_images) {
+  x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
+}
+input_shape = dim(x)[2:4]
+
+```
+
+```{r}
+input_shape
+dim(x)
+```
+
+
+## alexnet
+- The AlexNet CNN architecture input expects a 227x227 RGB (3 channels) image --> (227, 227, 3). We are using (64, 64, 1).
+
+Sources cross-referenced from:
+- https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98 (main reference)
+- https://www.analyticsvidhya.com/blog/2021/03/introduction-to-the-architecture-of-alexnet/ (secondary reference)
+- https://thecleverprogrammer.com/2021/12/13/alexnet-architecture-using-python/ (2 dense layer instead of 3)
+- https://medium.com/analytics-vidhya/building-a-convolutional-neural-network-based-on-the-alexnet-architecture-89f8e70c8de4 (different number of filters)
+
+```{r}
+model_function <- function(learning_rate = 0.001) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    
+    # 1st layer
+    layer_conv_2d(filters = 96, kernel_size = c(11,11), strides = c(4,4), activation = 'relu', input_shape = input_shape, padding="same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 2nd layer
+    layer_conv_2d(filters = 256, kernel_size = c(5,5), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 3rd layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    
+    # 4th layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>%
+    layer_batch_normalization() %>%
+    
+    # 5th layer
+    layer_conv_2d(filters = 256, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 6th layer
+    layer_flatten() %>% 
+    layer_dense(units = 4096, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    
+    # 7th layer
+    layer_dense(units = 4096, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    
+    # 8th layer
+    layer_dense(units = 28, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "categorical_crossentropy",
+    optimizer = optimizer_sgd(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+
+# Let this model compile and inspect its architecture
+
+model <- model_function()
+model
+```
+
+## Train model
+```{r}
+batch_size <- 32
+epochs <- 100
+
+#yy = model.matrix(~ y - 1)
+#head(yy)
+yy = model.matrix(~ as.factor(imgs_cleaned[[2]]) - 1)
+```
+
+```{r}
+dim(yy)
+dim(x)
+```
+
+
+```{r}
+hist <- model %>% fit(
+  x = x,
+  y = yy,
+  batch_size = batch_size,
+  steps_per_epoch = num_images %/% batch_size,
+  epochs = epochs, 
+  validation_split = 0.2,
+  verbose = 2
+)
+
+plot(hist)
+```
+
+```{r}
+pred <- model %>% predict(x)
+#head(pred)
+```
+
+```{r}
+pred_class = apply(pred, 1, which.max)
+#pred_class
+```
+
+```{r}
+y = as.factor(imgs_cleaned[[2]])
+
+#table(pred_class, y)
+```
+
+```{r}
+# resubstituition error rate
+1-(sum(diag(table(pred_class, y)))/length(y))
+```
+
