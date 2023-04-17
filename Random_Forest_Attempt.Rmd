@@ -1,0 +1,317 @@
+---
+title: "DATA3888: Data Science Capstone"
+subtitle: "Biotechnology (image analysis) Random Forest Attempt"
+author: "George Wu"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+
+---
+
+```{r, echo = FALSE}
+options(width = 91)
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+```{r}
+library(EBImage)
+library(tidyverse)
+library(pracma)
+library(randomForest)
+library(ggimage)
+```
+```{r}
+set.seed(2023)
+```
+
+```{r}
+cluster_A_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_4", full.names = TRUE)
+
+cluster_B_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_8", full.names = TRUE)
+
+cluster_C_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_12", full.names = TRUE)
+
+cluster_D_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_13", full.names = TRUE)
+
+length(cluster_A_files)
+length(cluster_B_files)
+length(cluster_C_files)
+length(cluster_D_files)
+```
+
+```{r}
+img = readImage(cluster_A_files[1])
+img
+
+EBImage::display(img, method = "raster")
+EBImage::display(img/quantile(img, 0.99), method = "raster")
+EBImage::display(img*5, method = "raster")
+```
+
+```{r}
+cluster_A_imgs = sapply(cluster_A_files, readImage, simplify = FALSE)
+cluster_A_imgs_resized = lapply(cluster_A_imgs, resize, w = 50, h = 50)
+cluster_A_imgs_tiled = tile(EBImage::combine(cluster_A_imgs_resized))
+display(cluster_A_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_B_imgs = sapply(cluster_B_files, readImage, simplify = FALSE)
+cluster_B_imgs_resized = lapply(cluster_B_imgs, resize, w = 50, h = 50)
+cluster_B_imgs_tiled = tile(EBImage::combine(cluster_B_imgs_resized))
+display(cluster_B_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_C_imgs = sapply(cluster_C_files, readImage, simplify = FALSE)
+cluster_C_imgs_resized = lapply(cluster_C_imgs, resize, w = 50, h = 50)
+cluster_C_imgs_tiled = tile(EBImage::combine(cluster_C_imgs_resized))
+display(cluster_C_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_D_imgs = sapply(cluster_D_files, readImage, simplify = FALSE)
+cluster_D_imgs_resized = lapply(cluster_D_imgs, resize, w = 50, h = 50)
+cluster_D_imgs_tiled = tile(EBImage::combine(cluster_D_imgs_resized))
+display(cluster_D_imgs_tiled, method = "raster")
+```
+
+```{r}
+raw_cell_boundaries = read.csv("Biotechnology_small/data_processed/cell_boundaries.csv.gz")
+
+cluster_A_cell_ids = gsub(".*cell_|.png", "", cluster_A_files)
+cluster_B_cell_ids = gsub(".*cell_|.png", "", cluster_B_files)
+cluster_C_cell_ids = gsub(".*cell_|.png", "", cluster_C_files)
+cluster_D_cell_ids = gsub(".*cell_|.png", "", cluster_D_files)
+
+cell_boundaries = raw_cell_boundaries |> 
+  filter(cell_id %in% c(cluster_A_cell_ids, cluster_B_cell_ids, cluster_C_cell_ids, cluster_D_cell_ids))
+
+cell_boundaries |> head()
+
+ggplot(cell_boundaries, aes(x = vertex_x, y = vertex_y)) + 
+  geom_polygon(aes(group = cell_id)) + 
+  facet_wrap(~cell_id, scales = "free") + 
+  theme_classic() + 
+  theme(axis.text = element_blank()) + 
+  theme(axis.ticks = element_blank()) + 
+  theme(aspect.ratio = 1)
+```
+
+```{r}
+#extract centroids from the boundaries
+cell_centroids = cell_boundaries |> 
+  group_by(cell_id) |>
+  summarise(vertex_x = mean(vertex_x), vertex_y = mean(vertex_y))
+
+ggplot(cell_centroids, aes(x = vertex_x, y = vertex_y)) + 
+  geom_point() + 
+  scale_y_reverse() + 
+  theme(aspect.ratio = 1)
+```
+
+```{r}
+i = 1
+
+cell_boundary = cell_boundaries |> 
+  filter(cell_id %in% cluster_A_cell_ids[1])
+
+img = cluster_A_imgs[[1]]
+
+cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+
+display(img, method = "raster")
+points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
+```
+
+```{r}
+#identify which pixels are inside or outside
+pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+
+pixels_inside = inpolygon(x = pixel_locations[,1], y = pixel_locations[,2],
+                          xp = cell_boundary$vertex_x_scaled, yp = cell_boundary$vertex_y_scaled, boundary = TRUE)
+
+img_inside = img
+img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+
+display(img_inside, method = "raster")
+```
+
+```{r}
+img_mask = img*img_inside
+
+display(img_mask, method = "raster")
+points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
+```
+
+```{r}
+img_mask_resized = resize(img_mask, 50, 50)
+
+#display with polygon rescaled
+display(img_mask_resized, method = "raster")
+points(cell_boundary$vertex_x_scaled*50/nrow(img_mask),
+       cell_boundary$vertex_y_scaled*50/ncol(img_mask), type = "b", lwd = 10, col = "yellow")
+```
+
+```{r}
+get_inside = function(cellID, img, cell_boundaries) {
+  cell_boundary = cell_boundaries |>
+    filter(cell_id %in% cellID)
+  
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  #identify which pixels are inside or outside of the cell segment
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1], y = pixel_locations[,2], xp = cell_boundary$vertex_x_scaled, yp = cell_boundary$vertex_y_scaled, boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  img_mask = img*img_inside
+  
+  #transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+```
+
+```{r}
+display(mask_resize(cluster_A_imgs[[1]],    get_inside(cluster_A_cell_ids[1], cluster_A_imgs[[1]], cell_boundaries)),
+        method = "raster")
+
+cluster_A_imgs_inside = mapply(get_inside, cluster_A_cell_ids, cluster_A_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_A_imgs_masked_resized = mapply(mask_resize, cluster_A_imgs, cluster_A_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_A_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_A_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_B_imgs_inside = mapply(get_inside, cluster_B_cell_ids, cluster_B_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_B_imgs_masked_resized = mapply(mask_resize, cluster_B_imgs, cluster_B_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_B_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_B_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_C_imgs_inside = mapply(get_inside, cluster_C_cell_ids, cluster_C_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_C_imgs_masked_resized = mapply(mask_resize, cluster_C_imgs, cluster_C_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_C_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_C_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_D_imgs_inside = mapply(get_inside, cluster_D_cell_ids, cluster_D_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_D_imgs_masked_resized = mapply(mask_resize, cluster_D_imgs, cluster_D_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_D_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_D_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+y = factor(rep(c("cluster_A", "cluster_B", "cluster_C", "cluster_D"), times = c(length(cluster_A_cell_ids), length(cluster_B_cell_ids), length(cluster_C_cell_ids), length(cluster_D_cell_ids))))
+
+x = cbind(do.call(cbind, lapply(cluster_A_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_B_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_C_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_D_imgs_masked_resized, c)))
+
+rf = randomForest(x = t(x), y = y)
+rf
+
+importance_img = Image(data = matrix(rf$importance, 50, 50))
+display(importance_img/quantile(importance_img, 0.99), method = "raster")
+```
+
+```{r}
+computeFeatures(img_inside, img_mask, expandRef = NULL)
+
+cluster_A_img_features = mapply(computeFeatures,
+                                x = cluster_A_imgs_inside,
+                                ref = cluster_A_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_B_img_features = mapply(computeFeatures,
+                                x = cluster_B_imgs_inside,
+                                ref = cluster_B_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_C_img_features = mapply(computeFeatures,
+                                x = cluster_C_imgs_inside,
+                                ref = cluster_C_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_D_img_features = mapply(computeFeatures,
+                                x = cluster_D_imgs_inside,
+                                ref = cluster_D_imgs, MoreArgs = list(expandRef = NULL))
+
+xf = cbind(cluster_A_img_features, cluster_B_img_features, cluster_C_img_features, cluster_D_img_features)
+rownames(xf) <- colnames(computeFeatures(img_inside, img_mask, expandRef = NULL))
+
+rff = randomForest(x = t(xf), y = y)
+rff
+
+rff$importance[order(rff$importance, decreasing = TRUE),,drop = FALSE]
+```
+```
+
+```{r}
+pc = princomp(t(xf), cor = TRUE)
+
+features_pc_df = data.frame(PC1 = pc$scores[,1],
+                            PC2 = pc$scores[,2],
+                            cluster = y, image = c(cluster_A_files, cluster_B_files, cluster_C_files, cluster_D_files))
+
+ggplot(features_pc_df, aes(x = PC1, y = PC2)) + geom_point(aes(colour = cluster))
+
+ggplot(features_pc_df, aes(x = PC1, y = PC2)) + 
+  geom_image(aes(image = image), size = 0.03)
+```
+
+```{r}
+images_mat = t(x)
+image_features = t(xf)
+labels = y
+
+cvK = 5
+cv_acc_rf_all = cv_acc_rff_all = c()
+cv_acc_rd = cv_acc_rff = c()
+
+n_sim = 5
+for (i in 1:n_sim) {
+  print(i)
+  cvSets = cvTools::cvFolds(nrow(images_mat), cvK)
+  cv_acc_rf = cv_acc_rff = c()
+  
+  for (j in 1:cvK) {
+    test_id = cvSets$subsets[cvSets$which == j]
+    images_mat_test = images_mat[test_id,]
+    images_mat_train = images_mat[-test_id,]
+    
+    image_features_test = image_features[test_id, ]
+    image_features_train = image_features[-test_id, ]
+    
+    y_test = labels[test_id]
+    y_train = labels[-test_id]
+    
+    #random forest on pixels
+    rf <- randomForest::randomForest(x = images_mat_train, y = as.factor(y_train))
+    fit <- predict(rf, images_mat_test)
+    cv_acc_rf[j] = mean(fit == y_test)
+    
+    rff <- randomForest::randomForest(x = image_features_train, y = as.factor(y_train))
+    fit <- predict(rff, image_features_test)
+    cv_acc_rff[j] = mean(fit == y_test)
+  }
+  cv_acc_rf_all <- append(cv_acc_rf_all, mean(cv_acc_rf))
+  cv_acc_rff_all <- append(cv_acc_rff_all, mean(cv_acc_rff))
+}
+
+boxplot(list(RF_Pixels = cv_acc_rf_all, RF_Features = cv_acc_rff_all), ylab = "CV Accuracy")
+```
