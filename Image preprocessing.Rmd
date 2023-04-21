@@ -1,6 +1,5 @@
 ---
 title: "Image preprocessing"
-author: "Ian"
 date: "2023-04-09"
 output: html_document
 ---
@@ -26,10 +25,12 @@ library(SpatialPack)
 
 ## Load image
 ```{r}
-img = load.image("data/Biotechnology_small/data_processed/cell_images/cluster_1/cell_4759.png")
+img = load.image("../data/Biotechnology_small/data_processed/cell_images/cluster_1/cell_4759.png")
 img = resize(img,50,50)
 EBImage::display(img, method = "raster")
 ```
+
+# Try different types of filters
 
 Filter-library(SpatialPack): https://search.r-project.org/CRAN/refmans/SpatialPack/html/denoise.html
 not sure if this one is that useful.
@@ -45,7 +46,7 @@ what is power law:
 https://www.tutorialspoint.com/dip/gray_level_transformations.htm#:~:text=Power%20%E2%80%93%20Law%20transformations&text=This%20type%20of%20transformation%20is,displayed%20on%20CRT%20is%20dark.
 ```{r}
 gamma <- 2.5
-img_transformed <- 255 * (img / 255) ^ gamma 
+img_transformed <- img^gamma 
 par(mfrow=c(1,2))
 plot(img, main="Original Image")
 plot(img_transformed, main="Transformed Image")
@@ -66,7 +67,7 @@ plot(img, main="Original Image")
 plot(nmask, main="nmask")
 ```
 
-## Resources
+## Resources for filtering
 
 Video - Bioimage Analysis 2: Pre-Processing (How people deal with cell images): 
 https://www.youtube.com/watch?v=MIDK8BqJY_8
@@ -77,4 +78,35 @@ https://www.youtube.com/watch?v=jLd2I2adQtw
 Introduction to EBImage:  
 https://bioconductor.org/packages/devel/bioc/vignettes/EBImage/inst/doc/EBImage-introduction.html#1_Getting_started
 
+# Try image transforming methods
+```{r}
+im = load.image("../data/Biotechnology_small/data_processed/cell_images/cluster_1/cell_4759.png")
 
+EBImage::display(im, method = "raster")
+```
+rotation
+```{r}
+img_rotate = rotate(im, 359)
+EBImage::display(img_rotate, method = "raster")
+```
+Translation
+```{r}
+img_translate = translate(img_rotate, c(-20,-20))
+EBImage::display(img_translate, method = "raster")
+```
+Using random
+```{r}
+set.seed(3888)
+for(i in 1:15){
+  rotate = runif(1,0,360)
+  xy = runif(2,-20,20)
+  print(rotate)
+  print(xy)
+}
+
+```
+
+
+## Resources for Augmentation
+Video - Data Augmentation with Albumentations (Why we need it):
+https://www.youtube.com/watch?v=Xhl_S_0ZYEo
