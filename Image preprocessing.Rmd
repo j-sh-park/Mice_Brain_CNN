@@ -36,6 +36,7 @@ Filter-library(SpatialPack): https://search.r-project.org/CRAN/refmans/SpatialPa
 not sure if this one is that useful.
 ```{r}
 img_denoise = denoise(as.matrix(img), type="Lee", looks = 0.05, damping = 0.1)
+
 par(mfrow=c(1,2))
 EBImage::display(img, method = "raster")
 EBImage::display(img_denoise, method = "raster")
@@ -47,6 +48,7 @@ https://www.tutorialspoint.com/dip/gray_level_transformations.htm#:~:text=Power%
 ```{r}
 gamma <- 2.5
 img_transformed <- img^gamma 
+
 par(mfrow=c(1,2))
 plot(img, main="Original Image")
 plot(img_transformed, main="Transformed Image")
@@ -97,7 +99,7 @@ EBImage::display(img_translate, method = "raster")
 Using random
 ```{r}
 set.seed(3888)
-for(i in 1:15){
+for(i in 1:5){
   rotate = runif(1,0,360)
   xy = runif(2,-20,20)
   print(rotate)

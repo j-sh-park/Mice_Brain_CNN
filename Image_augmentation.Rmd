@@ -1,0 +1,113 @@
+---
+title: "Image augmentation"
+output: html_document
+date: "2023-04-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## load libraries
+```{r}
+library(EBImage)
+```
+
+# This chunk is all you need to touch
+## Set up folder path & amount of images we want in the folder
+```{r}
+folder_path = "../data/Biotechnology_small/data_processed/cell_images/cluster_28/"
+target_num = 250
+```
+
+## this chunk will do it for one folder if you want to play around
+```{r}
+set.seed(3888)
+
+folder_length = length(dir(folder_path))
+folder_length 
+if(folder_length >= target_num) {stop("Already have enough images in this folder")} 
+
+n = target_num - folder_length #how many new images we will create
+n
+
+image_files = list.files(folder_path, full.names = TRUE)
+image_names = list.files(folder_path, full.names = FALSE)
+
+num_of_new_img = 1
+iteration =1
+enough = FALSE
+while(TRUE){
+  for(i in 1:folder_length){
+    brightness = runif(1,-0.05,0.05)
+    rotate_val = runif(1,0,360)
+    xy = runif(2,-20,20)
+    
+    img = readImage(image_files[i])
+    img = img + brightness
+    img = rotate(img,rotate_val)
+    img = translate(img, c(xy[1],xy[2]))
+    EBImage::writeImage(img,files = paste0(folder_path,"generated_v",iteration,"_",image_names[i]))
+    
+    num_of_new_img = num_of_new_img+1
+    if(num_of_new_img > n){
+      enough = TRUE
+      break
+    }
+  }
+  iteration = iteration+1
+  if (enough) break
+}
+
+print(paste("Done! ",n,"new images have been added to: ",folder_path))
+```
+
+# AUTO RUN ALL FROM CLUSTER 1-28
+```{r}
+set.seed(3888)
+
+#folder_path change it manually if you need
+#target_num if you want to change it go to the top
+
+#BIG LOOP
+for(j in 1:28){
+  folder_path = paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",j,"/")
+  
+  folder_length = length(dir(folder_path))
+  if(folder_length >= target_num) {stop(paste0("Already have enough images in ",folder_path))} 
+  
+  n = target_num - folder_length #how many new images we will create
+  
+  image_files = list.files(folder_path, full.names = TRUE)
+  image_names = list.files(folder_path, full.names = FALSE)
+  
+  num_of_new_img = 1
+  iteration =1
+  enough = FALSE
+  while(TRUE){
+    for(i in 1:folder_length){
+      brightness = runif(1,-0.05,0.05)
+      rotate_val = runif(1,0,360)
+      xy = runif(2,-20,20)
+      
+      img = readImage(image_files[i])
+      img = img + brightness
+      img = rotate(img,rotate_val)
+      img = translate(img, c(xy[1],xy[2]))
+      EBImage::writeImage(img,files = paste0(folder_path,"generated_v",iteration,"_",image_names[i]))
+      
+      num_of_new_img = num_of_new_img+1
+      if(num_of_new_img > n){
+        enough = TRUE
+        break
+      }
+    }
+    iteration = iteration+1
+    if (enough) break
+  }
+  
+  print(paste("Done!",n,"new images have been added to: ",folder_path))
+}
+
+```
+
+
