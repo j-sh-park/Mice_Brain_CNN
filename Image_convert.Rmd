@@ -1,0 +1,67 @@
+---
+title: "convert images"
+output: html_document
+date: "2023-04-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load libraries
+```{r}
+# Load required packages
+library(EBImage)
+library(SpatialPack)
+```
+
+Choose variables
+```{r}
+cluster = "8"
+technique = "thresholding"
+```
+
+
+JUST CHANGE THE PROCESSING TECHNIQUE AND RUN IT
+```{r}
+image_files <- list.files(paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",cluster,"/"),
+                             full.names = TRUE)
+cell_names <- list.files(paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",cluster,"/"),
+                             full.names = FALSE)
+#name it based on the method 
+output_folder <- paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",cluster,"_",technique,"/")
+
+
+# if there is no folder for the cluster, create one
+if (!file.exists(output_folder)) {
+    system(paste0("mkdir ",output_folder))
+}
+
+i = 1
+while (i <= length(image_files)) {
+  # Read image
+  img <- readImage(image_files[i])
+  
+  ########################Apply image processing technique################
+  #1.denoise
+  #img = denoise(as.matrix(img), type="enhanced") 
+  #2.power law
+  #img <- img^2.5 
+  #3.thresholding
+  img = thresh(img, w=9, h=8, offset=0.05)
+  img = fillHull(opening(img, makeBrush(5, shape='diamond')))
+  
+  ########################################################################
+  
+  # Save transformed image to output file
+  EBImage::writeImage(x = img, files = paste0(output_folder,cell_names[i]))
+  i = i+1
+}
+```
+
+# WRITE A BIG LOOP TO RUN ALL 28 CLUSTERS LATER
+```{r}
+
+```
+
+
