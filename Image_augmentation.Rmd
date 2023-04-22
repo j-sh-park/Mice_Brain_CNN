@@ -12,11 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(EBImage)
 ```
 
-# This chunk is all you need to touch
 ## Set up folder path & amount of images we want in the folder
 ```{r}
-folder_path = "../data/Biotechnology_small/data_processed/cell_images/cluster_28/"
-target_num = 250
+folder_path = "../data/Biotechnology/data_processed/cell_images/cluster_28/"
+target_num = 250 #How many images do we want in the folder
 ```
 
 ## this chunk will do it for one folder if you want to play around
@@ -65,12 +64,12 @@ print(paste("Done! ",n,"new images have been added to: ",folder_path))
 ```{r}
 set.seed(3888)
 
-#folder_path change it manually if you need
+#folder_path change it manually if you need (In line 73 inside paste0)
 #target_num if you want to change it go to the top
 
 #BIG LOOP
 for(j in 1:28){
-  folder_path = paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",j,"/")
+  folder_path = paste0("../data/Biotechnology/data_processed/cell_images/cluster_",j,"/")
   
   folder_length = length(dir(folder_path))
   if(folder_length >= target_num) {stop(paste0("Already have enough images in ",folder_path))} 
