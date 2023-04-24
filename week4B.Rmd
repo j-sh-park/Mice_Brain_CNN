@@ -21,10 +21,10 @@ library(ggimage)
 ```
 ## 1.1 Reading the data
 ```{r}
-cluster_A_files = list.files("data/Biotechnology_small/data_processed/cell_images/cluster_8/",
+cluster_A_files = list.files("../data/Biotechnology_small/data_processed/cell_images/cluster_8/",
                              full.names = TRUE)
 
-cluster_B_files = list.files("data/Biotechnology_small/data_processed/cell_images/cluster_13/",
+cluster_B_files = list.files("../data/Biotechnology_small/data_processed/cell_images/cluster_13/",
                              full.names = TRUE)
 ```
 
@@ -68,7 +68,7 @@ Load the cell boundaries file. Keep only the cell boundary vertices that belong 
 
 Note that we will need to align the cell boundaries with the pixel values.
 ```{r}
-cell_boundaries_raw = read.csv("data/Biotechnology_small/data_processed/cell_boundaries.csv.gz")
+cell_boundaries_raw = read.csv("../data/Biotechnology_small/data_processed/cell_boundaries.csv.gz")
 
 cluster_A_cell_ids = gsub(".*cell_|.png", "", cluster_A_files)
 cluster_B_cell_ids = gsub(".*cell_|.png", "", cluster_B_files)
@@ -190,7 +190,8 @@ display(cluster_A_imgs_inside[[1]], method = "raster")
 ```
 
 ```{r}
-display(tile(EBImage::combine(cluster_A_imgs_masked_resized)), method = "raster")
+display(tile(EBImage::combine(cluster_A_imgs_masked_resized)))
+
 ```
 
 ```{r}
@@ -201,7 +202,7 @@ display(cluster_B_imgs_inside[[1]], method = "raster")
 ```
 
 ```{r}
-display(tile(EBImage::combine(cluster_B_imgs_masked_resized)), method = "raster")
+display(tile(EBImage::combine(cluster_B_imgs_masked_resized)))
 ```
 
 
