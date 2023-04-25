@@ -50,33 +50,37 @@ mask_resize = function(img, img_inside, w = 50, h = 50) {
 # modified code from James
 get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
 {
-  clusters = list.files(img_clusters_folder_path)
+  clusters = stringr::str_sort(list.files(img_clusters_folder_path), num = TRUE)
   clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
   clusters_ids = names(clusters)
 
   cell_boundaries = read.csv(cell_boundaries_path)
-
+  
   out = list(list(), c())
-
+  
+  i = 1
   for (c in seq(to = length(clusters_ids)))
   {
+    #print(c)
+    if (i == 3) {
+      break
+    }
     cluster = list.files(clusters[c], full.names=TRUE)
     cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
-    cluster = sapply(cluster, readImage, simplify=FALSE)
-
-    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
-    cluster_resized = mapply(mask_resize, cluster, cluster_inside, MoreArgs = list(w=w, h=h), SIMPLIFY = FALSE)
+    cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
+    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=224, h=224), SIMPLIFY = FALSE)
     out[[1]] = append(out[[1]], cluster_resized)
-    out[[2]] = c(out[[2]], rep(clusters_ids[c], times=length(cluster_cell_ids)))
+    out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
   }
 
   return(out)
-  # return(clusters)
+  #return(clusters)
 }
 ```
 
 ```{r}
-imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 64, 64)
+imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 224, 224)
 ```
 
 # Deep Learning
@@ -90,7 +94,7 @@ tensorflow::set_random_seed(2023)
 imgs_masked_resized_64 = imgs_cleaned[[1]]
 num_images = length(imgs_masked_resized_64)
 img_names <- names(imgs_masked_resized_64)
-x <- array(dim=c(num_images, 64, 64, 1))
+x <- array(dim=c(num_images, 224, 224, 1))
 for (i in 1:num_images) {
   x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
 }
@@ -114,7 +118,7 @@ Sources cross-referenced from:
 - https://medium.com/analytics-vidhya/building-a-convolutional-neural-network-based-on-the-alexnet-architecture-89f8e70c8de4 (different number of filters)
 
 ```{r}
-model_function <- function(learning_rate = 0.001) {
+model_function <- function(learning_rate = 0.020) {
   
   k_clear_session()
   
@@ -149,8 +153,8 @@ model_function <- function(learning_rate = 0.001) {
     layer_dropout(rate = 0.5) %>% 
     
     # 7th layer
-    layer_dense(units = 4096, activation = 'relu') %>% 
-    layer_dropout(rate = 0.5) %>% 
+    layer_dense(units = 4096, activation = 'relu') %>%
+    layer_dropout(rate = 0.5) %>%
     
     # 8th layer
     layer_dense(units = 28, activation = 'softmax')
@@ -205,11 +209,21 @@ plot(hist)
 pred <- model %>% predict(x)
 #head(pred)
 ```
+```{r}
+head(pred)
+```
+
 
 ```{r}
 pred_class = apply(pred, 1, which.max)
 #pred_class
 ```
+
+```{r}
+table(pred_class, y)
+
+```
+
 
 ```{r}
 y = as.factor(imgs_cleaned[[2]])
@@ -221,4 +235,3 @@ y = as.factor(imgs_cleaned[[2]])
 # resubstituition error rate
 1-(sum(diag(table(pred_class, y)))/length(y))
 ```
-
