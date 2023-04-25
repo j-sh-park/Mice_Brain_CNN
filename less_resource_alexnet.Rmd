@@ -138,12 +138,29 @@ for (i in 1:num_images) {
 }
 
 input_shape = dim(x)[2:4]
-
+y = factor(rep(c("cluster_A", "cluster_B", "cluster_C", "cluster_D"), times = c(length(cluster_A_cell_ids), length(cluster_B_cell_ids), length(cluster_C_cell_ids), length(cluster_D_cell_ids))))
 ```
 
 ```{r}
+length(y)
 input_shape
 dim(x)
+```
+
+```{r}
+set.seed(2023)
+sample <- sample(c(TRUE, FALSE), num_images, replace=TRUE, prob=c(0.8,0.2))
+x_train  <- x[sample,,,1]
+x_test   <- x[!sample,,,1]
+y_train = y[sample]
+y_test = y[!sample]
+```
+
+```{r}
+dim(x_train)
+dim(x_test)
+length(y_train)
+length(y_test)
 ```
 
 
@@ -152,7 +169,7 @@ dim(x)
 - With categorical cross entropy, predicts everything to be 2 and error rate of 0.4883721.
 
 ```{r}
-model_function <- function(learning_rate = 0.020) {
+model_function <- function(learning_rate = 0.001) {
   
   k_clear_session()
   
@@ -214,18 +231,18 @@ model
 batch_size <- 32
 epochs <- 100
 
-yy = model.matrix(~ y - 1)
+yy = model.matrix(~ y_train - 1)
 ```
 
 ```{r}
 dim(yy)
-dim(x)
+dim(x_train)
 ```
 
 
 ```{r}
 hist <- model %>% fit(
-  x = x,
+  x = x_train,
   y = yy,
   batch_size = batch_size,
   steps_per_epoch = num_images %/% batch_size,
@@ -238,9 +255,11 @@ plot(hist)
 ```
 
 ```{r}
-pred <- model %>% predict(x)
+# insample 
+pred <- model %>% predict(x_test)
 head(pred)
 ```
+
 ```{r}
 dim(pred)
 ```
@@ -250,15 +269,16 @@ dim(pred)
 pred_class = apply(pred, 1, which.max)
 pred_class
 ```
+```{r}
+length(y_test)
+length(pred_class)
+```
 
 ```{r}
-table(pred_class, y)
+table(pred_class, y_test)
 ```
 
 ```{r}
 # resubstituition error rate
-1-(sum(diag(table(pred_class, y)))/length(y))
-
-# accuracy
-(sum(diag(table(pred_class, y)))/length(y))
+1-(sum(diag(table(pred_class, y_test)))/length(y_test))
 ```
