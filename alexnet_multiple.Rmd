@@ -69,7 +69,7 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
     cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
     cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
     cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
-    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=224, h=224), SIMPLIFY = FALSE)
+    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=64, h=64), SIMPLIFY = FALSE)
     out[[1]] = append(out[[1]], cluster_resized)
     out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
   }
@@ -80,7 +80,7 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
 ```
 
 ```{r}
-imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 224, 224)
+imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 64, 64)
 ```
 
 # Deep Learning
@@ -94,17 +94,33 @@ tensorflow::set_random_seed(2023)
 imgs_masked_resized_64 = imgs_cleaned[[1]]
 num_images = length(imgs_masked_resized_64)
 img_names <- names(imgs_masked_resized_64)
-x <- array(dim=c(num_images, 224, 224, 1))
+x <- array(dim=c(num_images, 64, 64, 1))
 for (i in 1:num_images) {
   x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
 }
 input_shape = dim(x)[2:4]
-
+y = as.factor(imgs_cleaned[[2]])
 ```
 
 ```{r}
+set.seed(2023)
+sample <- sample(c(TRUE, FALSE), num_images, replace=TRUE, prob=c(0.8,0.2))
+x_train  <- x[sample,,,1]
+x_test   <- x[!sample,,,1]
+y_train = y[sample]
+y_test = y[!sample]
+num_images = dim(x_train)[1]
+```
+
+```{r}
+dim(x_train)
+dim(x_test)
+length(y_train)
+length(y_test)
 input_shape
-dim(x)
+```
+```{r}
+dim(x_train)[1]
 ```
 
 
@@ -118,7 +134,7 @@ Sources cross-referenced from:
 - https://medium.com/analytics-vidhya/building-a-convolutional-neural-network-based-on-the-alexnet-architecture-89f8e70c8de4 (different number of filters)
 
 ```{r}
-model_function <- function(learning_rate = 0.020) {
+model_function <- function(learning_rate = 0.001) {
   
   k_clear_session()
   
@@ -177,23 +193,23 @@ model
 
 ## Train model
 ```{r}
-batch_size <- 32
-epochs <- 100
+batch_size <- 10 
+epochs <- 65
 
 #yy = model.matrix(~ y - 1)
 #head(yy)
-yy = model.matrix(~ as.factor(imgs_cleaned[[2]]) - 1)
+yy = model.matrix(~ y_train - 1)
 ```
 
 ```{r}
 dim(yy)
-dim(x)
+dim(x_train)
 ```
 
 
 ```{r}
 hist <- model %>% fit(
-  x = x,
+  x = x_train,
   y = yy,
   batch_size = batch_size,
   steps_per_epoch = num_images %/% batch_size,
@@ -206,13 +222,9 @@ plot(hist)
 ```
 
 ```{r}
-pred <- model %>% predict(x)
+pred <- model %>% predict(x_test)
 #head(pred)
 ```
-```{r}
-head(pred)
-```
-
 
 ```{r}
 pred_class = apply(pred, 1, which.max)
@@ -220,18 +232,12 @@ pred_class = apply(pred, 1, which.max)
 ```
 
 ```{r}
-table(pred_class, y)
-
+table(pred_class, y_test)
 ```
 
-
-```{r}
-y = as.factor(imgs_cleaned[[2]])
-
-#table(pred_class, y)
-```
 
 ```{r}
 # resubstituition error rate
-1-(sum(diag(table(pred_class, y)))/length(y))
+1-(sum(diag(table(pred_class, y_test)))/length(y_test))
 ```
+
