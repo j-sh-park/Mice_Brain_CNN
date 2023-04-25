@@ -116,30 +116,6 @@ cluster_D_imgs_inside = mapply(get_inside, cluster_D_cell_ids, cluster_D_imgs, M
 cluster_D_imgs_masked_resized = mapply(mask_resize, cluster_D_imgs, cluster_D_imgs_inside, SIMPLIFY = FALSE)
 ```
 
-```{r}
-cluster_A_img_features = mapply(computeFeatures,
-                                x = cluster_A_imgs_inside,
-                                ref = cluster_A_imgs,
-                                MoreArgs = list(expandRef = NULL))
-cluster_B_img_features = mapply(computeFeatures,
-                                x = cluster_B_imgs_inside,
-                                ref = cluster_B_imgs,
-                                MoreArgs = list(expandRef = NULL))
-cluster_C_img_features = mapply(computeFeatures,
-                                x = cluster_C_imgs_inside,
-                                ref = cluster_C_imgs,
-                                MoreArgs = list(expandRef = NULL))
-cluster_D_img_features = mapply(computeFeatures,
-                                x = cluster_D_imgs_inside,
-                                ref = cluster_D_imgs,
-                                MoreArgs = list(expandRef = NULL))
-
-xf = cbind(cluster_A_img_features, cluster_B_img_features, cluster_C_img_features, cluster_D_img_features)
-
-rff = randomForest(x = t(xf), y = y)
-# rff
-```
-
 # Deep Learning
 ```{r, warning=FALSE, message=FALSE}
 library(reticulate)
