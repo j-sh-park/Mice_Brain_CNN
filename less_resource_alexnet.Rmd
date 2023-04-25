@@ -56,44 +56,6 @@ cluster_D_imgs_tiled = tile(EBImage::combine(cluster_D_imgs_resized))
 
 ```
 
-
-```{r}
-i = 1
-
-cell_boundary = cell_boundaries |>
-  filter(cell_id %in% cluster_A_cell_ids[i])
-
-#cell_boundary
-
-img = cluster_A_imgs[[i]]
-
-# rescale the boundary according to the pixels
-# 1 indexing, hence need +1
-pixels = dim(img)
-cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
-cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
-
-# visualise the image with the cell boundary
-#display(img, method = "raster")
-#points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
-```
-
-```{r}
-# identify which pixels are inside or outside of the cell segment using inpolygon
-pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
-
-pixels_inside = inpolygon(x = pixel_locations[,1],
-                          y = pixel_locations[,2],
-                          xp = cell_boundary$vertex_x_scaled,
-                          yp = cell_boundary$vertex_y_scaled,
-                          boundary = TRUE)
-
-img_inside = img
-img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
-
-#display(img_inside, method = "raster")
-```
-
 ```{r}
 get_inside = function(cellID, img, cell_boundaries) {
   
@@ -131,11 +93,6 @@ mask_resize = function(img, img_inside, w = 50, h = 50) {
 }
 ```
 
-
-```{r}
-#display(mask_resize(cluster_A_imgs[[1]], get_inside(cluster_A_cell_ids[1], cluster_A_imgs[[1]], cell_boundaries)),vmethod = "raster")
-```
-
 ```{r}
 cluster_A_imgs_inside = mapply(get_inside, cluster_A_cell_ids, cluster_A_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
 cluster_A_imgs_masked_resized = mapply(mask_resize, cluster_A_imgs, cluster_A_imgs_inside, SIMPLIFY = FALSE)
@@ -157,26 +114,6 @@ cluster_C_imgs_masked_resized = mapply(mask_resize, cluster_C_imgs, cluster_C_im
 
 cluster_D_imgs_inside = mapply(get_inside, cluster_D_cell_ids, cluster_D_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
 cluster_D_imgs_masked_resized = mapply(mask_resize, cluster_D_imgs, cluster_D_imgs_inside, SIMPLIFY = FALSE)
-```
-
-
-# Random Forest
-
-```{r}
-y = factor(rep(c("cluster_A", "cluster_B", "cluster_C", "cluster_D"), times = c(length(cluster_A_cell_ids), length(cluster_B_cell_ids), length(cluster_C_cell_ids), length(cluster_D_cell_ids))))
-x = cbind(do.call(cbind, lapply(cluster_A_imgs_masked_resized,c)),
-          do.call(cbind, lapply(cluster_B_imgs_masked_resized,c)),
-          do.call(cbind, lapply(cluster_C_imgs_masked_resized,c)),
-          do.call(cbind, lapply(cluster_D_imgs_masked_resized,c))
-          )
-
-rf = randomForest(x = t(x), y = y)
-# rf
-```
-
-```{r}
-# importance_img = Image(data = matrix(rf$importance, 50, 50))
-# display(importance_img/quantile(importance_img, 0.99), method = "raster")
 ```
 
 ```{r}
@@ -201,20 +138,6 @@ xf = cbind(cluster_A_img_features, cluster_B_img_features, cluster_C_img_feature
 
 rff = randomForest(x = t(xf), y = y)
 # rff
-```
-
-
-```{r}
-# pc = princomp(t(xf), cor = TRUE)
-#
-# features_pc_df = data.frame(PC1 = pc$scores[,1],
-#                             PC2 = pc$scores[,2],
-#                             cluster = y,
-#                             image = c(cluster_A_files, cluster_B_files))
-#
-# ggplot(features_pc_df, aes(x = PC1, y = PC2)) +
-#   geom_point(aes(colour = cluster)) +
-#   geom_image(aes(image = image), size = 0.03)
 ```
 
 # Deep Learning
