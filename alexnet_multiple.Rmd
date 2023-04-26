@@ -9,6 +9,9 @@ library(EBImage)
 library(pracma)
 library(randomForest)
 library(ggimage)
+
+# change this based on image size you want
+main_param = 64
 ```
 
 ```{r}
@@ -69,7 +72,7 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
     cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
     cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
     cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
-    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=64, h=64), SIMPLIFY = FALSE)
+    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
     out[[1]] = append(out[[1]], cluster_resized)
     out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
   }
@@ -80,7 +83,7 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
 ```
 
 ```{r}
-imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 64, 64)
+imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", main_param, main_param)
 ```
 
 # Deep Learning
@@ -94,7 +97,7 @@ tensorflow::set_random_seed(2023)
 imgs_masked_resized_64 = imgs_cleaned[[1]]
 num_images = length(imgs_masked_resized_64)
 img_names <- names(imgs_masked_resized_64)
-x <- array(dim=c(num_images, 64, 64, 1))
+x <- array(dim=c(num_images, main_param, main_param, 1))
 for (i in 1:num_images) {
   x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
 }
@@ -172,7 +175,7 @@ model_function <- function(learning_rate = 0.001) {
     layer_dense(units = 4096, activation = 'relu') %>%
     layer_dropout(rate = 0.5) %>%
     
-    # 8th layer
+    # 8th layer; change value of units if you need different number of clusters. This uses 28 clusters, hence unit=28
     layer_dense(units = 28, activation = 'softmax')
   
   model %>% compile(
