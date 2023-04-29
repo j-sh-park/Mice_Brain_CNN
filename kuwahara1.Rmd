@@ -1,0 +1,93 @@
+---
+title: "kuwahara1"
+author: "Nikki Leung"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("BiocManager")
+library(BiocManager)
+BiocManager::install("EBImage")
+```
+
+#edge-detection
+```{r}
+# Load the image
+#install.packages('SpatialPack')
+#install.packages("dplyr")
+library(EBImage)
+library(SpatialPack)
+img <- load.image("C:/Users/User/OneDrive - The University of Sydney (Students)/data3888/quiz/data_processed/cell_images/cluster_1/cell_5416.png")
+img = resize(img,50,50)
+
+# Convert the image to grayscale
+gray_img <- grayscale(img)
+
+# Detect edges using the Canny edge detection algorithm
+edges1 <- cannyEdges(gray_img, sigma = 3)
+edges2 <- cannyEdges(gray_img, sigma = 5)
+edges3 <- cannyEdges(gray_img, sigma = 10)
+#higher sigma = morfe smooth
+# Display the original image and the edges
+par(mfrow=c(1,2))
+plot(img)
+plot(edges1)
+plot(edges2)
+plot(edges3)
+
+```
+
+
+#Erosion and Dilation
+```{r}
+library(EBImage)
+library(imager)
+library(SpatialPack)
+# Read the image
+img <- load.image("C:/Users/User/OneDrive - The University of Sydney (Students)/data3888/quiz/data_processed/cell_images/cluster_1/cell_5416.png")
+img = resize(img,50,50)
+
+# Convert the image to grayscale
+gray_img <- grayscale(img)
+
+# Define a structuring element
+se1 <- array(1, dim = c(3, 3, 3, 3))
+se2 <- array(1, dim = c(10, 10, 10, 10))
+# Erosion
+eroded_img1 <- erode(gray_img, se1)
+eroded_img2 <- erode(gray_img, se2)
+
+# Dilation
+dilated_img1 <- dilate(gray_img, se1)
+dilated_img2 <- dilate(gray_img, se2)
+par(mfrow=c(1,2))
+plot(img)
+plot(eroded_img1)
+plot(dilated_img1)
+plot(eroded_img2)
+plot(dilated_img2)
+
+save.image(eroded_img1, "eroded_img1.jpg")
+save.image(dilated_img1, "dilated_img1.jpg")
+```
+
+# Opening and Closing
+```{r}
+# Opening (applying erosion followed by dilation)
+# Read the image
+erodedimg1 <- load.image("C:/Users/User/OneDrive - The University of Sydney (Students)/data3888 group proj/data3888 proj/eroded_img1.jpg")
+erodedimg1 = resize(img,50,50)
+opening_img1 <- dilate(erodedimg1, se1)
+plot(opening_img1)
+# Closing (applying dilation followed by erosion)
+dilatedimg1 <- load.image("C:/Users/User/OneDrive - The University of Sydney (Students)/data3888 group proj/data3888 proj/dilated_img1.jpg")
+dilatedimg1 = resize(img,50,50)
+closing_img1 <- erode(dilatedimg1, se1)
+plot(closing_img1)
+```
+
