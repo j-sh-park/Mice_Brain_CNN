@@ -17,19 +17,44 @@ library(SpatialPack)
 
 Choose variables
 ```{r}
-cluster = "8"
+#Path: Change it to your path but right before the cluster number. eg."../data/Biotechnology_small/data_processed/cell_images/cluster_"
+folder_path = "../dataTest/Biotechnology/data_processed/cell_images/cluster_"
+  
+#Pick one technique: "denoise" "power" "thresholding"
 technique = "thresholding"
+
+#Change if you are converting one cluster, If you are running all clusters then ignore this variable 
+cluster = "1"
 ```
 
-
-JUST CHANGE THE PROCESSING TECHNIQUE AND RUN IT
+functions
 ```{r}
-image_files <- list.files(paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",cluster,"/"),
+denoise_filter <- function(img){
+  img = denoise(as.matrix(img), type="enhanced") 
+  return(img)
+}
+
+power_filter <- function(img){
+  img = img^2.5
+  return(img)
+}
+
+thresholding_filter <- function(img){
+  img = thresh(img, w=9, h=8, offset=0.05)
+  img = fillHull(opening(img, makeBrush(5, shape='diamond')))
+  return(img)
+}
+```
+
+RUN THIS For 1 cluster
+```{r}
+image_files <- list.files(paste0(folder_path,cluster,"/"),
                              full.names = TRUE)
-cell_names <- list.files(paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",cluster,"/"),
+cell_names <- list.files(paste0(folder_path,cluster,"/"),
                              full.names = FALSE)
 #name it based on the method 
-output_folder <- paste0("../data/Biotechnology_small/data_processed/cell_images/cluster_",cluster,"_",technique,"/")
+output_folder <- paste0(folder_path,cluster,"_",technique,"/")
+
 
 
 # if there is no folder for the cluster, create one
@@ -41,17 +66,15 @@ i = 1
 while (i <= length(image_files)) {
   # Read image
   img <- readImage(image_files[i])
-  
-  ########################Apply image processing technique################
-  #1.denoise
-  #img = denoise(as.matrix(img), type="enhanced") 
-  #2.power law
-  #img <- img^2.5 
-  #3.thresholding
-  img = thresh(img, w=9, h=8, offset=0.05)
-  img = fillHull(opening(img, makeBrush(5, shape='diamond')))
-  
-  ########################################################################
+
+  #Apply image processing technique
+  if (technique == "denoise") {
+    img = denoise_filter(img)
+  } else if (technique == "power") {
+    img = power_filter(img)
+  } else if (technique == "thresholding") {
+    img = thresholding_filter(img)
+  }
   
   # Save transformed image to output file
   EBImage::writeImage(x = img, files = paste0(output_folder,cell_names[i]))
@@ -59,8 +82,43 @@ while (i <= length(image_files)) {
 }
 ```
 
-# WRITE A BIG LOOP TO RUN ALL 28 CLUSTERS LATER
+RUN THIS for ALL 28 clusters
 ```{r}
+for(j in 1:28){
+  image_files <- list.files(paste0(folder_path,j,"/"),
+                               full.names = TRUE)
+  cell_names <- list.files(paste0(folder_path,j,"/"),
+                               full.names = FALSE)
+  #name it based on the method 
+  output_folder <- paste0(folder_path,j,"_",technique,"/")
+  
+  
+  # if there is no folder for the cluster, create one
+  if (!file.exists(output_folder)) {
+      system(paste0("mkdir ",output_folder))
+  }
+  
+  i = 1
+  while (i <= length(image_files)) {
+    # Read image
+    img <- readImage(image_files[i])
+    
+    #Apply image processing technique
+    if (technique == "denoise") {
+      img = denoise_filter(img)
+    } else if (technique == "power") {
+      img = power_filter(img)
+    } else if (technique == "thresholding") {
+      img = thresholding_filter(img)
+    }
+   
+    
+    # Save transformed image to output file
+    EBImage::writeImage(x = img, files = paste0(output_folder,cell_names[i]))
+    i = i+1
+  }
+}
+
 
 ```
 
