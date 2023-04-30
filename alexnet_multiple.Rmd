@@ -9,6 +9,9 @@ library(EBImage)
 library(pracma)
 library(randomForest)
 library(ggimage)
+
+# change this based on image size you want
+main_param = 64
 ```
 
 ```{r}
@@ -50,33 +53,37 @@ mask_resize = function(img, img_inside, w = 50, h = 50) {
 # modified code from James
 get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
 {
-  clusters = list.files(img_clusters_folder_path)
+  clusters = stringr::str_sort(list.files(img_clusters_folder_path), num = TRUE)
   clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
   clusters_ids = names(clusters)
 
   cell_boundaries = read.csv(cell_boundaries_path)
-
+  
   out = list(list(), c())
-
+  
+  i = 1
   for (c in seq(to = length(clusters_ids)))
   {
+    #print(c)
+    if (i == 3) {
+      break
+    }
     cluster = list.files(clusters[c], full.names=TRUE)
     cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
-    cluster = sapply(cluster, readImage, simplify=FALSE)
-
-    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
-    cluster_resized = mapply(mask_resize, cluster, cluster_inside, MoreArgs = list(w=w, h=h), SIMPLIFY = FALSE)
+    cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
+    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
     out[[1]] = append(out[[1]], cluster_resized)
-    out[[2]] = c(out[[2]], rep(clusters_ids[c], times=length(cluster_cell_ids)))
+    out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
   }
 
   return(out)
-  # return(clusters)
+  #return(clusters)
 }
 ```
 
 ```{r}
-imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", 64, 64)
+imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", main_param, main_param)
 ```
 
 # Deep Learning
@@ -90,17 +97,33 @@ tensorflow::set_random_seed(2023)
 imgs_masked_resized_64 = imgs_cleaned[[1]]
 num_images = length(imgs_masked_resized_64)
 img_names <- names(imgs_masked_resized_64)
-x <- array(dim=c(num_images, 64, 64, 1))
+x <- array(dim=c(num_images, main_param, main_param, 1))
 for (i in 1:num_images) {
   x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
 }
 input_shape = dim(x)[2:4]
-
+y = as.factor(imgs_cleaned[[2]])
 ```
 
 ```{r}
+set.seed(2023)
+sample <- sample(c(TRUE, FALSE), num_images, replace=TRUE, prob=c(0.8,0.2))
+x_train  <- x[sample,,,1]
+x_test   <- x[!sample,,,1]
+y_train = y[sample]
+y_test = y[!sample]
+num_images = dim(x_train)[1]
+```
+
+```{r}
+dim(x_train)
+dim(x_test)
+length(y_train)
+length(y_test)
 input_shape
-dim(x)
+```
+```{r}
+dim(x_train)[1]
 ```
 
 
@@ -149,10 +172,10 @@ model_function <- function(learning_rate = 0.001) {
     layer_dropout(rate = 0.5) %>% 
     
     # 7th layer
-    layer_dense(units = 4096, activation = 'relu') %>% 
-    layer_dropout(rate = 0.5) %>% 
+    layer_dense(units = 4096, activation = 'relu') %>%
+    layer_dropout(rate = 0.5) %>%
     
-    # 8th layer
+    # 8th layer; change value of units if you need different number of clusters. This uses 28 clusters, hence unit=28
     layer_dense(units = 28, activation = 'softmax')
   
   model %>% compile(
@@ -173,23 +196,23 @@ model
 
 ## Train model
 ```{r}
-batch_size <- 32
-epochs <- 100
+batch_size <- 10 
+epochs <- 65
 
 #yy = model.matrix(~ y - 1)
 #head(yy)
-yy = model.matrix(~ as.factor(imgs_cleaned[[2]]) - 1)
+yy = model.matrix(~ y_train - 1)
 ```
 
 ```{r}
 dim(yy)
-dim(x)
+dim(x_train)
 ```
 
 
 ```{r}
 hist <- model %>% fit(
-  x = x,
+  x = x_train,
   y = yy,
   batch_size = batch_size,
   steps_per_epoch = num_images %/% batch_size,
@@ -202,7 +225,7 @@ plot(hist)
 ```
 
 ```{r}
-pred <- model %>% predict(x)
+pred <- model %>% predict(x_test)
 #head(pred)
 ```
 
@@ -212,13 +235,12 @@ pred_class = apply(pred, 1, which.max)
 ```
 
 ```{r}
-y = as.factor(imgs_cleaned[[2]])
-
-#table(pred_class, y)
+table(pred_class, y_test)
 ```
+
 
 ```{r}
 # resubstituition error rate
-1-(sum(diag(table(pred_class, y)))/length(y))
+1-(sum(diag(table(pred_class, y_test)))/length(y_test))
 ```
 
