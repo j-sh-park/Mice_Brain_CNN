@@ -11,12 +11,18 @@ library(randomForest)
 library(ggimage)
 
 # change this based on image size you want
-main_param = 64
+main_param = 224
 ```
 
+# Setup
+
 ```{r}
+# code obtained from Lab 4 code
+
+# Does the boundary masking for 1 cell image; Returns masked image on region of interest
 get_inside = function(cellID, img, cell_boundaries) {
   
+  # get cell boundaries corresponding to the cellID
   cell_boundary = cell_boundaries |>
     filter(cell_id %in% cellID)
   
@@ -40,6 +46,7 @@ get_inside = function(cellID, img, cell_boundaries) {
   return(img_inside)
 }
 
+# resizes image, including its mask
 mask_resize = function(img, img_inside, w = 50, h = 50) {
   
   img_mask = img*img_inside
@@ -50,7 +57,8 @@ mask_resize = function(img, img_inside, w = 50, h = 50) {
   return(img_mask_resized)
 }
 
-# modified code from James
+# Loop through all images in the image folder; returns a tuple where 
+# out[[1]] is the list of images (image data), out[[2]] is the cluster it belongs to
 get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
 {
   clusters = stringr::str_sort(list.files(img_clusters_folder_path), num = TRUE)
@@ -60,14 +68,9 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
   cell_boundaries = read.csv(cell_boundaries_path)
   
   out = list(list(), c())
-  
-  i = 1
+
   for (c in seq(to = length(clusters_ids)))
   {
-    #print(c)
-    if (i == 3) {
-      break
-    }
     cluster = list.files(clusters[c], full.names=TRUE)
     cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
     cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
@@ -78,15 +81,16 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
   }
 
   return(out)
-  #return(clusters)
 }
 ```
 
 ```{r}
+# get masked images with boundaries
 imgs_cleaned <- get_images("Biotechnology_small/data_processed/cell_images/", "Biotechnology_small/data_processed/cell_boundaries.csv.gz", main_param, main_param)
 ```
 
-# Deep Learning
+# Preparing datasets
+
 ```{r, warning=FALSE, message=FALSE}
 library(reticulate)
 library(RBioFormats)
@@ -96,48 +100,37 @@ tensorflow::set_random_seed(2023)
 
 imgs_masked_resized_64 = imgs_cleaned[[1]]
 num_images = length(imgs_masked_resized_64)
-img_names <- names(imgs_masked_resized_64)
+
+# reshape image data into an array x = (total number of images, img width, img height, image data)
 x <- array(dim=c(num_images, main_param, main_param, 1))
 for (i in 1:num_images) {
   x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
 }
+
 input_shape = dim(x)[2:4]
+# factorize cluster names
 y = as.factor(imgs_cleaned[[2]])
 ```
 
 ```{r}
 set.seed(2023)
+# split data into training and testing sets
 sample <- sample(c(TRUE, FALSE), num_images, replace=TRUE, prob=c(0.8,0.2))
 x_train  <- x[sample,,,1]
 x_test   <- x[!sample,,,1]
 y_train = y[sample]
 y_test = y[!sample]
+
+# replace total number of images as number of training images
 num_images = dim(x_train)[1]
 ```
 
-```{r}
-dim(x_train)
-dim(x_test)
-length(y_train)
-length(y_test)
-input_shape
-```
-```{r}
-dim(x_train)[1]
-```
 
-
-## alexnet
-- The AlexNet CNN architecture input expects a 227x227 RGB (3 channels) image --> (227, 227, 3). We are using (64, 64, 1).
-
-Sources cross-referenced from:
-- https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98 (main reference)
-- https://www.analyticsvidhya.com/blog/2021/03/introduction-to-the-architecture-of-alexnet/ (secondary reference)
-- https://thecleverprogrammer.com/2021/12/13/alexnet-architecture-using-python/ (2 dense layer instead of 3)
-- https://medium.com/analytics-vidhya/building-a-convolutional-neural-network-based-on-the-alexnet-architecture-89f8e70c8de4 (different number of filters)
+# Model Creation
 
 ```{r}
-model_function <- function(learning_rate = 0.001) {
+# use smaller LR - advice; non-o would no name matching bug
+model_function <- function(learning_rate = 0.000001) {
   
   k_clear_session()
   
@@ -175,7 +168,7 @@ model_function <- function(learning_rate = 0.001) {
     layer_dense(units = 4096, activation = 'relu') %>%
     layer_dropout(rate = 0.5) %>%
     
-    # 8th layer; change value of units if you need different number of clusters. This uses 28 clusters, hence unit=28
+    # 8th layer
     layer_dense(units = 28, activation = 'softmax')
   
   model %>% compile(
@@ -194,21 +187,14 @@ model <- model_function()
 model
 ```
 
-## Train model
-```{r}
-batch_size <- 10 
-epochs <- 65
+## Training model
 
-#yy = model.matrix(~ y - 1)
-#head(yy)
+```{r}
+batch_size <- 32 
+epochs <- 100
+
 yy = model.matrix(~ y_train - 1)
 ```
-
-```{r}
-dim(yy)
-dim(x_train)
-```
-
 
 ```{r}
 hist <- model %>% fit(
@@ -224,17 +210,11 @@ hist <- model %>% fit(
 plot(hist)
 ```
 
+## Model Predictions
 ```{r}
+# predict the classes
 pred <- model %>% predict(x_test)
-#head(pred)
-```
-
-```{r}
 pred_class = apply(pred, 1, which.max)
-#pred_class
-```
-
-```{r}
 table(pred_class, y_test)
 ```
 
