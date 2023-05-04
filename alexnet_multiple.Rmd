@@ -71,13 +71,15 @@ get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50
 
   for (c in seq(to = length(clusters_ids)))
   {
-    cluster = list.files(clusters[c], full.names=TRUE)
-    cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
-    cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
-    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
-    cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
-    out[[1]] = append(out[[1]], cluster_resized)
-    out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
+    if (file.exists(clusters[c])) {
+      cluster = list.files(clusters[c], full.names=TRUE)
+      cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
+      cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
+      cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+      cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
+      out[[1]] = append(out[[1]], cluster_resized)
+      out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
+    }
   }
 
   return(out)
