@@ -1,0 +1,169 @@
+---
+title: "D3888_keras_models"
+author: '500373482'
+date: "2023-04-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(EBImage)
+library(tidyverse)
+library(pracma)
+library(randomForest)
+library(ggimage)
+```
+
+#1 Functions for data wrangling: image boundary, resizing and cleaning/labelling
+```{r}
+get_inside = function(cellID, img, cell_boundaries) {
+  
+  cell_boundary = cell_boundaries |>
+  filter(cell_id %in% cellID)
+  
+  # rescale the boundary according to the pixels
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  # identify which pixels are inside or outside of the cell segment using inpolygon
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1],
+                            y = pixel_locations[,2],
+                            xp = cell_boundary$vertex_x_scaled,
+                            yp = cell_boundary$vertex_y_scaled,
+                            boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  
+  img_mask = img
+  img_mask@.Data[which(!img_inside@.Data)] <- 0
+  
+  # then, transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+
+get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
+{
+  clusters = list.files(img_clusters_folder_path)
+  clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
+  clusters_ids = names(clusters)
+  
+  cell_boundaries = read.csv(cell_boundaries_path)
+  
+  out = list(list(), c())
+  
+  for (c in seq(to = length(clusters_ids)))
+  {
+    cluster = list.files(clusters[[c]], full.names=TRUE)
+    cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
+    cluster = sapply(cluster, readImage, simplify=FALSE)
+    
+    cluster_inside = mapply(get_inside, cluster_cell_ids, cluster, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+    cluster_resized = mapply(mask_resize, cluster, cluster_inside, MoreArgs = list(w=w, h=h), SIMPLIFY = FALSE)
+    out[[1]] = append(out[[1]], cluster_resized)
+    out[[2]] = c(out[[2]], rep(clusters_ids[c], times=length(cluster_cell_ids)))
+  }
+  
+  return(out)
+}
+```
+
+#2 Peform data wrangling
+```{r}
+imgs_cleaned <- get_images("C:/Users/James/Desktop/D3888/Biotechnology/data_processed/cell_images/", "C:/Users/James/Desktop/D3888/Biotechnology_small/data_processed/cell_boundaries.csv.gz", 64, 64)
+```
+
+```{r}
+set.seed(2023)
+library(keras)
+tensorflow::set_random_seed(2023)
+
+imgs_masked_resized_64 = imgs_cleaned[[1]]
+
+num_images = length(imgs_masked_resized_64)
+img_names <- names(imgs_masked_resized_64)
+
+x <- array(dim=c(num_images, 64, 64, 1))
+
+for (i in 1:num_images) {
+  x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
+}
+
+input_shape = dim(x)[2:4]
+
+
+model_function <- function(learning_rate = 0.001) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu', input_shape = input_shape) %>% 
+    layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+    layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
+    layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+    layer_dropout(rate = 0.25) %>% 
+    layer_flatten() %>% 
+    layer_dense(units = 128, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    layer_dense(units = 64) %>% 
+    layer_dropout(rate = 0.5) %>% 
+    layer_dense(units = 28, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "categorical_crossentropy",
+    optimizer = optimizer_adam(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+
+# Let this model compile and inspect its architecture
+
+model <- model_function()
+model
+```
+#6 RUN CNN
+```{r}
+batch_size <- 32
+epochs <- 100
+
+yy = model.matrix(~ as.factor(imgs_cleaned[[2]]) - 1)
+#head(yy)
+
+# the model history
+hist <- model %>% fit(
+  x = x,
+  y = yy,
+  batch_size = batch_size,
+  steps_per_epoch = num_images %/% batch_size,
+  epochs = epochs, 
+  validation_split = 0.3,
+  verbose = 2
+)
+
+plot(hist)
+```
+
+```{r}
+y = as.factor(imgs_cleaned[[2]])
+
+pred <- model %>% predict(x)
+
+pred_class = apply(pred, 1, which.max)
+# confusion matrix
+table(pred_class, y)
+# get the error
+1-(sum(diag(table(pred_class, y)))/length(y))
+```
+
