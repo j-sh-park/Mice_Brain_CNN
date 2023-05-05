@@ -1,0 +1,916 @@
+---
+title: "DATA3888: Data Science Capstone"
+subtitle: "Biotechnology (image analysis) Random Forest Attempt"
+author: "George Wu"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+
+---
+
+```{r, echo = FALSE}
+options(width = 91)
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+```{r}
+library(EBImage)
+library(tidyverse)
+library(pracma)
+library(randomForest)
+library(ggimage)
+```
+
+```{r}
+set.seed(2023)
+```
+
+```{r}
+cluster_A_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_1_power", full.names = TRUE)
+
+cluster_B_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_2_power", full.names = TRUE)
+
+cluster_C_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_3_power", full.names = TRUE)
+
+cluster_D_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_4_power", full.names = TRUE)
+
+cluster_E_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_5_power", full.names = TRUE)
+
+cluster_F_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_6_power", full.names = TRUE)
+
+cluster_G_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_7_power", full.names = TRUE)
+
+cluster_H_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_8_power", full.names = TRUE)
+
+cluster_I_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_9_power", full.names = TRUE)
+
+cluster_J_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_10_power", full.names = TRUE)
+
+cluster_K_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_11_power", full.names = TRUE)
+
+cluster_L_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_12_power", full.names = TRUE)
+
+cluster_M_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_13_power", full.names = TRUE)
+
+cluster_N_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_14_power", full.names = TRUE)
+
+cluster_O_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_15_power", full.names = TRUE)
+
+cluster_P_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_16_power", full.names = TRUE)
+
+cluster_Q_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_17_power", full.names = TRUE)
+
+cluster_R_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_18_power", full.names = TRUE)
+
+cluster_S_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_19_power", full.names = TRUE)
+
+cluster_T_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_20_power", full.names = TRUE)
+
+cluster_U_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_21_power", full.names = TRUE)
+
+cluster_V_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_22_power", full.names = TRUE)
+
+cluster_W_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_23_power", full.names = TRUE)
+
+cluster_X_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_24_power", full.names = TRUE)
+
+cluster_Y_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_25_power", full.names = TRUE)
+
+cluster_Z_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_26_power", full.names = TRUE)
+
+cluster_ZA_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_27_power", full.names = TRUE)
+
+cluster_ZB_files = list.files("Biotechnology_small/data_processed/cell_images/cluster_28_power", full.names = TRUE)
+
+length(cluster_A_files)
+length(cluster_B_files)
+length(cluster_C_files)
+length(cluster_D_files)
+length(cluster_E_files)
+length(cluster_F_files)
+length(cluster_G_files)
+length(cluster_H_files)
+length(cluster_I_files)
+length(cluster_J_files)
+length(cluster_K_files)
+length(cluster_L_files)
+length(cluster_M_files)
+length(cluster_N_files)
+length(cluster_O_files)
+length(cluster_P_files)
+length(cluster_Q_files)
+length(cluster_R_files)
+length(cluster_S_files)
+length(cluster_T_files)
+length(cluster_U_files)
+length(cluster_V_files)
+length(cluster_W_files)
+length(cluster_X_files)
+length(cluster_Y_files)
+length(cluster_Z_files)
+length(cluster_ZA_files)
+length(cluster_ZB_files)
+```
+
+```{r}
+img = readImage(cluster_A_files[1])
+img
+
+EBImage::display(img, method = "raster")
+EBImage::display(img/quantile(img, 0.99), method = "raster")
+EBImage::display(img*5, method = "raster")
+```
+
+```{r}
+cluster_A_imgs = sapply(cluster_A_files, readImage, simplify = FALSE)
+cluster_A_imgs_resized = lapply(cluster_A_imgs, resize, w = 50, h = 50)
+cluster_A_imgs_tiled = tile(EBImage::combine(cluster_A_imgs_resized))
+display(cluster_A_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_B_imgs = sapply(cluster_B_files, readImage, simplify = FALSE)
+cluster_B_imgs_resized = lapply(cluster_B_imgs, resize, w = 50, h = 50)
+cluster_B_imgs_tiled = tile(EBImage::combine(cluster_B_imgs_resized))
+display(cluster_B_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_C_imgs = sapply(cluster_C_files, readImage, simplify = FALSE)
+cluster_C_imgs_resized = lapply(cluster_C_imgs, resize, w = 50, h = 50)
+cluster_C_imgs_tiled = tile(EBImage::combine(cluster_C_imgs_resized))
+display(cluster_C_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_D_imgs = sapply(cluster_D_files, readImage, simplify = FALSE)
+cluster_D_imgs_resized = lapply(cluster_D_imgs, resize, w = 50, h = 50)
+cluster_D_imgs_tiled = tile(EBImage::combine(cluster_D_imgs_resized))
+display(cluster_D_imgs_tiled, method = "raster")
+```
+```{r}
+cluster_E_imgs = sapply(cluster_E_files, readImage, simplify = FALSE)
+cluster_E_imgs_resized = lapply(cluster_E_imgs, resize, w = 50, h = 50)
+cluster_E_imgs_tiled = tile(EBImage::combine(cluster_E_imgs_resized))
+display(cluster_E_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_F_imgs = sapply(cluster_F_files, readImage, simplify = FALSE)
+cluster_F_imgs_resized = lapply(cluster_F_imgs, resize, w = 50, h = 50)
+cluster_F_imgs_tiled = tile(EBImage::combine(cluster_F_imgs_resized))
+display(cluster_F_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_G_imgs = sapply(cluster_G_files, readImage, simplify = FALSE)
+cluster_G_imgs_resized = lapply(cluster_G_imgs, resize, w = 50, h = 50)
+cluster_G_imgs_tiled = tile(EBImage::combine(cluster_G_imgs_resized))
+display(cluster_G_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_H_imgs = sapply(cluster_H_files, readImage, simplify = FALSE)
+cluster_H_imgs_resized = lapply(cluster_H_imgs, resize, w = 50, h = 50)
+cluster_H_imgs_tiled = tile(EBImage::combine(cluster_H_imgs_resized))
+display(cluster_H_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_I_imgs = sapply(cluster_I_files, readImage, simplify = FALSE)
+cluster_I_imgs_resized = lapply(cluster_I_imgs, resize, w = 50, h = 50)
+cluster_I_imgs_tiled = tile(EBImage::combine(cluster_I_imgs_resized))
+display(cluster_I_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_J_imgs = sapply(cluster_J_files, readImage, simplify = FALSE)
+cluster_J_imgs_resized = lapply(cluster_J_imgs, resize, w = 50, h = 50)
+cluster_J_imgs_tiled = tile(EBImage::combine(cluster_J_imgs_resized))
+display(cluster_J_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_I_imgs = sapply(cluster_I_files, readImage, simplify = FALSE)
+cluster_I_imgs_resized = lapply(cluster_I_imgs, resize, w = 50, h = 50)
+cluster_I_imgs_tiled = tile(EBImage::combine(cluster_I_imgs_resized))
+display(cluster_I_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_J_imgs = sapply(cluster_J_files, readImage, simplify = FALSE)
+cluster_J_imgs_resized = lapply(cluster_J_imgs, resize, w = 50, h = 50)
+cluster_J_imgs_tiled = tile(EBImage::combine(cluster_J_imgs_resized))
+display(cluster_J_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_K_imgs = sapply(cluster_K_files, readImage, simplify = FALSE)
+cluster_K_imgs_resized = lapply(cluster_K_imgs, resize, w = 50, h = 50)
+cluster_K_imgs_tiled = tile(EBImage::combine(cluster_K_imgs_resized))
+display(cluster_K_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_L_imgs = sapply(cluster_L_files, readImage, simplify = FALSE)
+cluster_L_imgs_resized = lapply(cluster_L_imgs, resize, w = 50, h = 50)
+cluster_L_imgs_tiled = tile(EBImage::combine(cluster_L_imgs_resized))
+display(cluster_L_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_M_imgs = sapply(cluster_M_files, readImage, simplify = FALSE)
+cluster_M_imgs_resized = lapply(cluster_M_imgs, resize, w = 50, h = 50)
+cluster_M_imgs_tiled = tile(EBImage::combine(cluster_M_imgs_resized))
+display(cluster_M_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_N_imgs = sapply(cluster_N_files, readImage, simplify = FALSE)
+cluster_N_imgs_resized = lapply(cluster_N_imgs, resize, w = 50, h = 50)
+cluster_N_imgs_tiled = tile(EBImage::combine(cluster_N_imgs_resized))
+display(cluster_N_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_O_imgs = sapply(cluster_O_files, readImage, simplify = FALSE)
+cluster_O_imgs_resized = lapply(cluster_O_imgs, resize, w = 50, h = 50)
+cluster_O_imgs_tiled = tile(EBImage::combine(cluster_O_imgs_resized))
+display(cluster_O_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_P_imgs = sapply(cluster_P_files, readImage, simplify = FALSE)
+cluster_P_imgs_resized = lapply(cluster_P_imgs, resize, w = 50, h = 50)
+cluster_P_imgs_tiled = tile(EBImage::combine(cluster_P_imgs_resized))
+display(cluster_P_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_Q_imgs = sapply(cluster_Q_files, readImage, simplify = FALSE)
+cluster_Q_imgs_resized = lapply(cluster_Q_imgs, resize, w = 50, h = 50)
+cluster_Q_imgs_tiled = tile(EBImage::combine(cluster_Q_imgs_resized))
+display(cluster_Q_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_R_imgs = sapply(cluster_R_files, readImage, simplify = FALSE)
+cluster_R_imgs_resized = lapply(cluster_R_imgs, resize, w = 50, h = 50)
+cluster_R_imgs_tiled = tile(EBImage::combine(cluster_R_imgs_resized))
+display(cluster_R_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_S_imgs = sapply(cluster_S_files, readImage, simplify = FALSE)
+cluster_S_imgs_resized = lapply(cluster_S_imgs, resize, w = 50, h = 50)
+cluster_S_imgs_tiled = tile(EBImage::combine(cluster_S_imgs_resized))
+display(cluster_S_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_T_imgs = sapply(cluster_T_files, readImage, simplify = FALSE)
+cluster_T_imgs_resized = lapply(cluster_T_imgs, resize, w = 50, h = 50)
+cluster_T_imgs_tiled = tile(EBImage::combine(cluster_T_imgs_resized))
+display(cluster_T_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_U_imgs = sapply(cluster_U_files, readImage, simplify = FALSE)
+cluster_U_imgs_resized = lapply(cluster_U_imgs, resize, w = 50, h = 50)
+cluster_U_imgs_tiled = tile(EBImage::combine(cluster_U_imgs_resized))
+display(cluster_U_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_V_imgs = sapply(cluster_V_files, readImage, simplify = FALSE)
+cluster_V_imgs_resized = lapply(cluster_V_imgs, resize, w = 50, h = 50)
+cluster_V_imgs_tiled = tile(EBImage::combine(cluster_V_imgs_resized))
+display(cluster_V_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_W_imgs = sapply(cluster_W_files, readImage, simplify = FALSE)
+cluster_W_imgs_resized = lapply(cluster_W_imgs, resize, w = 50, h = 50)
+cluster_W_imgs_tiled = tile(EBImage::combine(cluster_W_imgs_resized))
+display(cluster_W_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_X_imgs = sapply(cluster_X_files, readImage, simplify = FALSE)
+cluster_X_imgs_resized = lapply(cluster_X_imgs, resize, w = 50, h = 50)
+cluster_X_imgs_tiled = tile(EBImage::combine(cluster_X_imgs_resized))
+display(cluster_X_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_Y_imgs = sapply(cluster_Y_files, readImage, simplify = FALSE)
+cluster_Y_imgs_resized = lapply(cluster_Y_imgs, resize, w = 50, h = 50)
+cluster_Y_imgs_tiled = tile(EBImage::combine(cluster_Y_imgs_resized))
+display(cluster_Y_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_Z_imgs = sapply(cluster_Z_files, readImage, simplify = FALSE)
+cluster_Z_imgs_resized = lapply(cluster_Z_imgs, resize, w = 50, h = 50)
+cluster_Z_imgs_tiled = tile(EBImage::combine(cluster_Z_imgs_resized))
+display(cluster_Z_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_ZA_imgs = sapply(cluster_ZA_files, readImage, simplify = FALSE)
+cluster_ZA_imgs_resized = lapply(cluster_ZA_imgs, resize, w = 50, h = 50)
+cluster_ZA_imgs_tiled = tile(EBImage::combine(cluster_ZA_imgs_resized))
+display(cluster_ZA_imgs_tiled, method = "raster")
+```
+
+```{r}
+cluster_ZB_imgs = sapply(cluster_ZB_files, readImage, simplify = FALSE)
+cluster_ZB_imgs_resized = lapply(cluster_ZB_imgs, resize, w = 50, h = 50)
+cluster_ZB_imgs_tiled = tile(EBImage::combine(cluster_ZB_imgs_resized))
+display(cluster_ZB_imgs_tiled, method = "raster")
+```
+
+```{r}
+raw_cell_boundaries = read.csv("Biotechnology_small/data_processed/cell_boundaries.csv.gz")
+
+cluster_A_cell_ids = gsub(".*cell_|.png", "", cluster_A_files)
+cluster_B_cell_ids = gsub(".*cell_|.png", "", cluster_B_files)
+cluster_C_cell_ids = gsub(".*cell_|.png", "", cluster_C_files)
+cluster_D_cell_ids = gsub(".*cell_|.png", "", cluster_D_files)
+cluster_E_cell_ids = gsub(".*cell_|.png", "", cluster_E_files)
+cluster_F_cell_ids = gsub(".*cell_|.png", "", cluster_F_files)
+cluster_G_cell_ids = gsub(".*cell_|.png", "", cluster_G_files)
+cluster_H_cell_ids = gsub(".*cell_|.png", "", cluster_H_files)
+cluster_I_cell_ids = gsub(".*cell_|.png", "", cluster_I_files)
+cluster_J_cell_ids = gsub(".*cell_|.png", "", cluster_J_files)
+cluster_K_cell_ids = gsub(".*cell_|.png", "", cluster_K_files)
+cluster_L_cell_ids = gsub(".*cell_|.png", "", cluster_L_files)
+cluster_M_cell_ids = gsub(".*cell_|.png", "", cluster_M_files)
+cluster_N_cell_ids = gsub(".*cell_|.png", "", cluster_N_files)
+cluster_O_cell_ids = gsub(".*cell_|.png", "", cluster_O_files)
+cluster_P_cell_ids = gsub(".*cell_|.png", "", cluster_P_files)
+cluster_Q_cell_ids = gsub(".*cell_|.png", "", cluster_Q_files)
+cluster_R_cell_ids = gsub(".*cell_|.png", "", cluster_R_files)
+cluster_S_cell_ids = gsub(".*cell_|.png", "", cluster_S_files)
+cluster_T_cell_ids = gsub(".*cell_|.png", "", cluster_T_files)
+cluster_U_cell_ids = gsub(".*cell_|.png", "", cluster_U_files)
+cluster_V_cell_ids = gsub(".*cell_|.png", "", cluster_V_files)
+cluster_W_cell_ids = gsub(".*cell_|.png", "", cluster_W_files)
+cluster_X_cell_ids = gsub(".*cell_|.png", "", cluster_X_files)
+cluster_Y_cell_ids = gsub(".*cell_|.png", "", cluster_Y_files)
+cluster_Z_cell_ids = gsub(".*cell_|.png", "", cluster_Z_files)
+cluster_ZA_cell_ids = gsub(".*cell_|.png", "", cluster_ZA_files)
+cluster_ZB_cell_ids = gsub(".*cell_|.png", "", cluster_ZB_files)
+
+
+cell_boundaries = raw_cell_boundaries |> 
+  filter(cell_id %in% c(cluster_A_cell_ids, cluster_B_cell_ids, cluster_C_cell_ids, cluster_D_cell_ids, cluster_E_cell_ids, cluster_F_cell_ids, cluster_G_cell_ids, cluster_H_cell_ids, cluster_I_cell_ids, cluster_J_cell_ids, cluster_K_cell_ids, cluster_L_cell_ids, cluster_M_cell_ids, cluster_N_cell_ids, cluster_O_cell_ids, cluster_P_cell_ids, cluster_Q_cell_ids, cluster_R_cell_ids, cluster_S_cell_ids, cluster_T_cell_ids, cluster_U_cell_ids, cluster_V_cell_ids, cluster_W_cell_ids, cluster_X_cell_ids, cluster_Y_cell_ids, cluster_Z_cell_ids, cluster_ZA_cell_ids, cluster_ZB_cell_ids))
+
+cell_boundaries |> head()
+
+ggplot(cell_boundaries, aes(x = vertex_x, y = vertex_y)) + 
+  geom_polygon(aes(group = cell_id)) + 
+  facet_wrap(~cell_id, scales = "free") + 
+  theme_classic() + 
+  theme(axis.text = element_blank()) + 
+  theme(axis.ticks = element_blank()) + 
+  theme(aspect.ratio = 1)
+```
+
+```{r}
+#extract centroids from the boundaries
+cell_centroids = cell_boundaries |> 
+  group_by(cell_id) |>
+  summarise(vertex_x = mean(vertex_x), vertex_y = mean(vertex_y))
+
+ggplot(cell_centroids, aes(x = vertex_x, y = vertex_y)) + 
+  geom_point() + 
+  scale_y_reverse() + 
+  theme(aspect.ratio = 1)
+```
+
+```{r}
+i = 1
+
+cell_boundary = cell_boundaries |> 
+  filter(cell_id %in% cluster_A_cell_ids[1])
+
+img = cluster_A_imgs[[1]]
+
+cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+
+display(img, method = "raster")
+points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
+```
+
+```{r}
+#identify which pixels are inside or outside
+pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+
+pixels_inside = inpolygon(x = pixel_locations[,1], y = pixel_locations[,2],
+                          xp = cell_boundary$vertex_x_scaled, yp = cell_boundary$vertex_y_scaled, boundary = TRUE)
+
+img_inside = img
+img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+
+display(img_inside, method = "raster")
+```
+
+```{r}
+img_mask = img*img_inside
+
+display(img_mask, method = "raster")
+points(cell_boundary$vertex_x_scaled, cell_boundary$vertex_y_scaled, type = "b", lwd = 10, col = "yellow")
+```
+
+```{r}
+img_mask_resized = resize(img_mask, 50, 50)
+
+#display with polygon rescaled
+display(img_mask_resized, method = "raster")
+points(cell_boundary$vertex_x_scaled*50/nrow(img_mask),
+       cell_boundary$vertex_y_scaled*50/ncol(img_mask), type = "b", lwd = 10, col = "yellow")
+```
+
+```{r}
+get_inside = function(cellID, img, cell_boundaries) {
+  cell_boundary = cell_boundaries |>
+    filter(cell_id %in% cellID)
+  
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  #identify which pixels are inside or outside of the cell segment
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1], y = pixel_locations[,2], xp = cell_boundary$vertex_x_scaled, yp = cell_boundary$vertex_y_scaled, boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  img_mask = img*img_inside
+  
+  #transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+```
+
+```{r}
+display(mask_resize(cluster_A_imgs[[1]],    get_inside(cluster_A_cell_ids[1], cluster_A_imgs[[1]], cell_boundaries)),
+        method = "raster")
+
+cluster_A_imgs_inside = mapply(get_inside, cluster_A_cell_ids, cluster_A_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_A_imgs_masked_resized = mapply(mask_resize, cluster_A_imgs, cluster_A_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_A_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_A_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_B_imgs_inside = mapply(get_inside, cluster_B_cell_ids, cluster_B_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_B_imgs_masked_resized = mapply(mask_resize, cluster_B_imgs, cluster_B_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_B_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_B_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_C_imgs_inside = mapply(get_inside, cluster_C_cell_ids, cluster_C_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_C_imgs_masked_resized = mapply(mask_resize, cluster_C_imgs, cluster_C_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_C_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_C_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_D_imgs_inside = mapply(get_inside, cluster_D_cell_ids, cluster_D_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_D_imgs_masked_resized = mapply(mask_resize, cluster_D_imgs, cluster_D_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_D_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_D_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_E_imgs_inside = mapply(get_inside, cluster_E_cell_ids, cluster_E_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_E_imgs_masked_resized = mapply(mask_resize, cluster_E_imgs, cluster_E_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_E_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_E_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_F_imgs_inside = mapply(get_inside, cluster_F_cell_ids, cluster_F_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_F_imgs_masked_resized = mapply(mask_resize, cluster_F_imgs, cluster_F_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_F_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_D_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_G_imgs_inside = mapply(get_inside, cluster_G_cell_ids, cluster_G_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_G_imgs_masked_resized = mapply(mask_resize, cluster_G_imgs, cluster_G_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_G_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_G_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_H_imgs_inside = mapply(get_inside, cluster_H_cell_ids, cluster_H_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_H_imgs_masked_resized = mapply(mask_resize, cluster_H_imgs, cluster_H_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_H_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_H_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_I_imgs_inside = mapply(get_inside, cluster_I_cell_ids, cluster_I_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_I_imgs_masked_resized = mapply(mask_resize, cluster_I_imgs, cluster_I_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_I_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_I_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_J_imgs_inside = mapply(get_inside, cluster_J_cell_ids, cluster_J_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_J_imgs_masked_resized = mapply(mask_resize, cluster_J_imgs, cluster_J_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_J_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_J_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_K_imgs_inside = mapply(get_inside, cluster_K_cell_ids, cluster_K_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_K_imgs_masked_resized = mapply(mask_resize, cluster_K_imgs, cluster_K_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_K_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_K_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_L_imgs_inside = mapply(get_inside, cluster_L_cell_ids, cluster_L_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_L_imgs_masked_resized = mapply(mask_resize, cluster_L_imgs, cluster_L_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_L_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_L_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_M_imgs_inside = mapply(get_inside, cluster_M_cell_ids, cluster_M_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_M_imgs_masked_resized = mapply(mask_resize, cluster_M_imgs, cluster_M_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_M_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_M_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_N_imgs_inside = mapply(get_inside, cluster_N_cell_ids, cluster_N_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_N_imgs_masked_resized = mapply(mask_resize, cluster_N_imgs, cluster_N_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_N_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_N_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_O_imgs_inside = mapply(get_inside, cluster_O_cell_ids, cluster_O_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_O_imgs_masked_resized = mapply(mask_resize, cluster_O_imgs, cluster_O_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_O_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_O_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_P_imgs_inside = mapply(get_inside, cluster_P_cell_ids, cluster_P_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_P_imgs_masked_resized = mapply(mask_resize, cluster_P_imgs, cluster_P_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_P_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_P_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_Q_imgs_inside = mapply(get_inside, cluster_Q_cell_ids, cluster_Q_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_Q_imgs_masked_resized = mapply(mask_resize, cluster_Q_imgs, cluster_Q_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_Q_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_Q_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_R_imgs_inside = mapply(get_inside, cluster_R_cell_ids, cluster_R_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_R_imgs_masked_resized = mapply(mask_resize, cluster_R_imgs, cluster_R_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_R_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_R_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_S_imgs_inside = mapply(get_inside, cluster_S_cell_ids, cluster_S_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_S_imgs_masked_resized = mapply(mask_resize, cluster_S_imgs, cluster_S_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_S_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_S_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_T_imgs_inside = mapply(get_inside, cluster_T_cell_ids, cluster_T_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_T_imgs_masked_resized = mapply(mask_resize, cluster_T_imgs, cluster_T_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_T_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_T_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_U_imgs_inside = mapply(get_inside, cluster_U_cell_ids, cluster_U_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_U_imgs_masked_resized = mapply(mask_resize, cluster_U_imgs, cluster_U_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_U_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_U_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_V_imgs_inside = mapply(get_inside, cluster_V_cell_ids, cluster_V_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_V_imgs_masked_resized = mapply(mask_resize, cluster_V_imgs, cluster_V_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_V_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_V_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_W_imgs_inside = mapply(get_inside, cluster_W_cell_ids, cluster_W_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_W_imgs_masked_resized = mapply(mask_resize, cluster_W_imgs, cluster_W_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_W_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_W_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_X_imgs_inside = mapply(get_inside, cluster_X_cell_ids, cluster_X_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_X_imgs_masked_resized = mapply(mask_resize, cluster_X_imgs, cluster_X_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_X_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_X_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_Y_imgs_inside = mapply(get_inside, cluster_Y_cell_ids, cluster_Y_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_Y_imgs_masked_resized = mapply(mask_resize, cluster_Y_imgs, cluster_Y_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_Y_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_Y_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_Z_imgs_inside = mapply(get_inside, cluster_Z_cell_ids, cluster_Z_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_Z_imgs_masked_resized = mapply(mask_resize, cluster_Z_imgs, cluster_Z_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_Z_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_Z_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_ZA_imgs_inside = mapply(get_inside, cluster_ZA_cell_ids, cluster_ZA_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_ZA_imgs_masked_resized = mapply(mask_resize, cluster_ZA_imgs, cluster_ZA_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_ZA_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_ZA_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+cluster_ZB_imgs_inside = mapply(get_inside, cluster_ZB_cell_ids, cluster_ZB_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+cluster_ZB_imgs_masked_resized = mapply(mask_resize, cluster_ZB_imgs, cluster_ZB_imgs_inside, SIMPLIFY = FALSE)
+
+display(cluster_ZB_imgs_inside[[1]], method = "raster")
+display(tile(EBImage::combine(cluster_ZB_imgs_masked_resized)), method = "raster")
+```
+
+```{r}
+set.seed(3888)
+y = factor(rep(c("cluster_A", "cluster_B", "cluster_C", "cluster_D", "cluster_E", "cluster_F", "cluster_G", "cluster_H", "cluster_I", "cluster_J", "cluster_K", "cluster_L", "cluster_M", "cluster_N", "cluster_O", "cluster_P", "cluster_Q", "cluster_R", "cluster_S", "cluster_T", "cluster_U", "cluster_V", "cluster_W", "cluster_X", "cluster_Y", "cluster_Z", "cluster_ZA", "cluster_ZB"), times = c(length(cluster_A_cell_ids), length(cluster_B_cell_ids), length(cluster_C_cell_ids), length(cluster_D_cell_ids), length(cluster_E_cell_ids), length(cluster_F_cell_ids), length(cluster_G_cell_ids), length(cluster_H_cell_ids), length(cluster_I_cell_ids), length(cluster_J_cell_ids), length(cluster_K_cell_ids), length(cluster_L_cell_ids), length(cluster_M_cell_ids), length(cluster_N_cell_ids), length(cluster_O_cell_ids), length(cluster_P_cell_ids), length(cluster_Q_cell_ids), length(cluster_R_cell_ids), length(cluster_S_cell_ids), length(cluster_T_cell_ids), length(cluster_U_cell_ids), length(cluster_V_cell_ids), length(cluster_W_cell_ids), length(cluster_X_cell_ids), length(cluster_Y_cell_ids), length(cluster_Z_cell_ids), length(cluster_ZA_cell_ids), length(cluster_ZB_cell_ids))))
+
+x = cbind(do.call(cbind, lapply(cluster_A_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_B_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_C_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_D_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_E_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_F_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_G_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_H_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_I_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_J_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_K_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_L_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_M_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_N_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_O_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_P_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_Q_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_R_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_S_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_T_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_U_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_V_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_W_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_X_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_Y_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_Z_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_ZA_imgs_masked_resized, c)),
+          do.call(cbind, lapply(cluster_ZB_imgs_masked_resized, c)))
+
+rf = randomForest(x = t(x), y = y)
+rf
+
+importance_img = Image(data = matrix(rf$importance, 50, 50))
+display(importance_img/quantile(importance_img, 0.99), method = "raster")
+```
+
+```{r}
+computeFeatures(img_inside, img_mask, expandRef = NULL)
+
+cluster_A_img_features = mapply(computeFeatures,
+                                x = cluster_A_imgs_inside,
+                                ref = cluster_A_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_B_img_features = mapply(computeFeatures,
+                                x = cluster_B_imgs_inside,
+                                ref = cluster_B_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_C_img_features = mapply(computeFeatures,
+                                x = cluster_C_imgs_inside,
+                                ref = cluster_C_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_D_img_features = mapply(computeFeatures,
+                                x = cluster_D_imgs_inside,
+                                ref = cluster_D_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_E_img_features = mapply(computeFeatures,
+                                x = cluster_E_imgs_inside,
+                                ref = cluster_E_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_F_img_features = mapply(computeFeatures,
+                                x = cluster_F_imgs_inside,
+                                ref = cluster_F_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_G_img_features = mapply(computeFeatures,
+                                x = cluster_G_imgs_inside,
+                                ref = cluster_G_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_H_img_features = mapply(computeFeatures,
+                                x = cluster_H_imgs_inside,
+                                ref = cluster_H_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_I_img_features = mapply(computeFeatures,
+                                x = cluster_I_imgs_inside,
+                                ref = cluster_I_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_J_img_features = mapply(computeFeatures,
+                                x = cluster_J_imgs_inside,
+                                ref = cluster_J_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_K_img_features = mapply(computeFeatures,
+                                x = cluster_K_imgs_inside,
+                                ref = cluster_K_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_L_img_features = mapply(computeFeatures,
+                                x = cluster_L_imgs_inside,
+                                ref = cluster_L_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_M_img_features = mapply(computeFeatures,
+                                x = cluster_M_imgs_inside,
+                                ref = cluster_M_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_N_img_features = mapply(computeFeatures,
+                                x = cluster_N_imgs_inside,
+                                ref = cluster_N_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_O_img_features = mapply(computeFeatures,
+                                x = cluster_O_imgs_inside,
+                                ref = cluster_O_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_P_img_features = mapply(computeFeatures,
+                                x = cluster_P_imgs_inside,
+                                ref = cluster_P_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_Q_img_features = mapply(computeFeatures,
+                                x = cluster_Q_imgs_inside,
+                                ref = cluster_Q_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_R_img_features = mapply(computeFeatures,
+                                x = cluster_R_imgs_inside,
+                                ref = cluster_R_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_S_img_features = mapply(computeFeatures,
+                                x = cluster_S_imgs_inside,
+                                ref = cluster_S_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_T_img_features = mapply(computeFeatures,
+                                x = cluster_T_imgs_inside,
+                                ref = cluster_T_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_U_img_features = mapply(computeFeatures,
+                                x = cluster_U_imgs_inside,
+                                ref = cluster_U_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_V_img_features = mapply(computeFeatures,
+                                x = cluster_V_imgs_inside,
+                                ref = cluster_V_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_W_img_features = mapply(computeFeatures,
+                                x = cluster_W_imgs_inside,
+                                ref = cluster_W_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_X_img_features = mapply(computeFeatures,
+                                x = cluster_X_imgs_inside,
+                                ref = cluster_X_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_Y_img_features = mapply(computeFeatures,
+                                x = cluster_Y_imgs_inside,
+                                ref = cluster_Y_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_Z_img_features = mapply(computeFeatures,
+                                x = cluster_Z_imgs_inside,
+                                ref = cluster_Z_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_ZA_img_features = mapply(computeFeatures,
+                                x = cluster_ZA_imgs_inside,
+                                ref = cluster_ZA_imgs, MoreArgs = list(expandRef = NULL))
+
+cluster_ZB_img_features = mapply(computeFeatures,
+                                x = cluster_ZB_imgs_inside,
+                                ref = cluster_ZB_imgs, MoreArgs = list(expandRef = NULL))
+
+xf = cbind(cluster_A_img_features, cluster_B_img_features, cluster_C_img_features, cluster_D_img_features, cluster_E_img_features, cluster_F_img_features, cluster_G_img_features, cluster_H_img_features, cluster_I_img_features, cluster_J_img_features, cluster_K_img_features, cluster_L_img_features, cluster_M_img_features, cluster_N_img_features, cluster_O_img_features, cluster_P_img_features, cluster_Q_img_features, cluster_R_img_features, cluster_S_img_features, cluster_T_img_features, cluster_U_img_features, cluster_V_img_features, cluster_W_img_features, cluster_X_img_features, cluster_Y_img_features, cluster_Z_img_features, cluster_ZA_img_features, cluster_ZB_img_features)
+
+rownames(xf) <- colnames(computeFeatures(img_inside, img_mask, expandRef = NULL))
+
+rff = randomForest(x = t(xf), y = y)
+rff
+
+rff$importance[order(rff$importance, decreasing = TRUE),,drop = FALSE]
+```
+
+```{r}
+pc = princomp(t(xf), cor = TRUE)
+
+features_pc_df = data.frame(PC1 = pc$scores[,1],
+                            PC2 = pc$scores[,2],
+                            cluster = y, image = c(cluster_A_files, cluster_B_files, cluster_C_files, cluster_D_files, cluster_E_files, cluster_F_files, cluster_G_files, cluster_H_files, cluster_I_files, cluster_J_files, cluster_K_files, cluster_L_files, cluster_M_files, cluster_N_files, cluster_O_files, cluster_P_files, cluster_Q_files, cluster_R_files, cluster_S_files, cluster_T_files, cluster_U_files, cluster_V_files, cluster_W_files, cluster_X_files, cluster_Y_files, cluster_Z_files, cluster_ZA_files, cluster_ZB_files))
+
+ggplot(features_pc_df, aes(x = PC1, y = PC2)) + geom_point(aes(colour = cluster))
+
+ggplot(features_pc_df, aes(x = PC1, y = PC2)) + 
+  geom_image(aes(image = image), size = 0.03)
+```
+
+```{r}
+images_mat = t(x)
+image_features = t(xf)
+labels = y
+
+cvK = 5
+cv_acc_rf_all = cv_acc_rff_all = c()
+cv_acc_rd = cv_acc_rff = c()
+
+n_sim = 5
+for (i in 1:n_sim) {
+  print(i)
+  cvSets = cvTools::cvFolds(nrow(images_mat), cvK)
+  cv_acc_rf = cv_acc_rff = c()
+  
+  for (j in 1:cvK) {
+    test_id = cvSets$subsets[cvSets$which == j]
+    images_mat_test = images_mat[test_id,]
+    images_mat_train = images_mat[-test_id,]
+    
+    image_features_test = image_features[test_id, ]
+    image_features_train = image_features[-test_id, ]
+    
+    y_test = labels[test_id]
+    y_train = labels[-test_id]
+    
+    #random forest on pixels
+    rf <- randomForest::randomForest(x = images_mat_train, y = as.factor(y_train))
+    fit <- predict(rf, images_mat_test)
+    cv_acc_rf[j] = mean(fit == y_test)
+    
+    rff <- randomForest::randomForest(x = image_features_train, y = as.factor(y_train))
+    fit <- predict(rff, image_features_test)
+    cv_acc_rff[j] = mean(fit == y_test)
+  }
+  cv_acc_rf_all <- append(cv_acc_rf_all, mean(cv_acc_rf))
+  cv_acc_rff_all <- append(cv_acc_rff_all, mean(cv_acc_rff))
+}
+
+boxplot(list(RF_Pixels = cv_acc_rf_all, RF_Features = cv_acc_rff_all), ylab = "CV Accuracy")
+```
+```{r}
+varImpPlot(rf)
+```
+
+```{r}
+varImpPlot(rff)
+```
