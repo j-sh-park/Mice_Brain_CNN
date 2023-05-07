@@ -82,9 +82,10 @@ while (i <= length(image_files)) {
 }
 ```
 
-RUN THIS for ALL 28 clusters
+RUN THIS for ALL 28 clusters - change to 17
 ```{r}
-for(j in 1:28){
+cluster_numer = 17
+for(j in 1:cluster_numer){
   image_files <- list.files(paste0(folder_path,j,"/"),
                                full.names = TRUE)
   cell_names <- list.files(paste0(folder_path,j,"/"),
