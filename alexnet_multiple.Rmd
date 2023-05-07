@@ -12,6 +12,7 @@ library(ggimage)
 
 # change this based on image size you want
 main_param = 224
+cluster_number = 17
 ```
 
 # Setup
@@ -171,7 +172,7 @@ model_function <- function(learning_rate = 0.000001) {
     layer_dropout(rate = 0.5) %>%
     
     # 8th layer
-    layer_dense(units = 28, activation = 'softmax')
+    layer_dense(units = cluster_number, activation = 'softmax')
   
   model %>% compile(
     loss = "categorical_crossentropy",
