@@ -51,7 +51,7 @@ get_images = function(img_clusters_folder_path, w=50, h=50)
 ```
 
 ```{r}
-# get masked images with boundaries
+# get masked images without boundaries
 imgs_cleaned <- get_images("data_merged_augmented/Biotechnology/data_processed/cell_images/", main_param, main_param)
 ```
 
