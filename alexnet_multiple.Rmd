@@ -10,9 +10,12 @@ library(pracma)
 library(randomForest)
 library(ggimage)
 
+# IMPORTANT PARAMETERS
 # change this based on image size you want
 main_param = 224
 cluster_number = 17
+# template: alexnet_augmented_17_technique
+modelname = 'alexnet_augmented_17_boundaries'
 ```
 
 # Setup
@@ -136,7 +139,7 @@ num_images = dim(x_train)[1]
 
 ```{r}
 # use smaller LR - advice; non-o would no name matching bug
-model_function <- function(learning_rate = 0.0000000001) {
+model_function <- function(learning_rate = 0.000001) {
   
   k_clear_session()
   
@@ -237,16 +240,10 @@ table(pred_class, y_test)
 - https://thecleverprogrammer.com/2021/12/13/alexnet-architecture-using-python/ (2 dense layer instead of 3)
 - https://medium.com/analytics-vidhya/building-a-convolutional-neural-network-based-on-the-alexnet-architecture-89f8e70c8de4 (different number of filters)
 
+# Save Model
 ```{r}
-keras::save_model_hdf5(model, 'alexnet_augmented_17_boundaries')
+# remember to change file name
+keras::save_model_hdf5(model, modelname)
 ```
 
-```{r}
-img = imgs_cleaned[[1]][[2]] # cell_10280
-display(img, method = "raster")
-```
-
-```{r}
-imgs_cleaned[[2]][[1]]
-```
 
