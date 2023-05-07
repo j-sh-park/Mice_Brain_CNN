@@ -17,11 +17,22 @@ library(SpatialPack)
 
 Choose variables
 ```{r}
-#Path: Change it to your path but right before the cluster number. eg."../data/Biotechnology_small/data_processed/cell_images/cluster_"
-folder_path = "../dataTest/Biotechnology/data_processed/cell_images/cluster_"
-  
-#Pick one technique: "denoise" "power" "thresholding"
-technique = "thresholding"
+#Pick one technique: "denoise" "power" "thresholding" "opening"
+technique = "opening"
+
+#Path: Change it to your path but right before the cluster number. eg."../data/Biotechnology/data_processed/cell_images/cluster_"
+#INPUT:
+folder_path = "../data_merged_augmented/Biotechnology/data_processed/cell_images/cluster_"
+#OUTPUT:
+output_path = paste0("../data_",technique,"/Biotechnology/data_processed/cell_images/cluster_")
+
+#Create output folder
+if (!file.exists(paste0("../data_",technique))) {
+  system(paste0("mkdir ",paste0("../data_",technique)))
+  system(paste0("mkdir ",paste0("../data_",technique,"/Biotechnology/")))
+  system(paste0("mkdir ",paste0("../data_",technique,"/Biotechnology/data_processed/")))
+  system(paste0("mkdir ",paste0("../data_",technique,"/Biotechnology/data_processed/cell_images/")))
+}
 
 #Change if you are converting one cluster, If you are running all clusters then ignore this variable 
 cluster = "1"
@@ -44,6 +55,11 @@ thresholding_filter <- function(img){
   img = fillHull(opening(img, makeBrush(5, shape='diamond')))
   return(img)
 }
+
+opening_filter <- function(img){
+  img = opening(img, makeBrush(5, shape='diamond'))
+  return(img)
+}
 ```
 
 RUN THIS For 1 cluster
@@ -53,7 +69,7 @@ image_files <- list.files(paste0(folder_path,cluster,"/"),
 cell_names <- list.files(paste0(folder_path,cluster,"/"),
                              full.names = FALSE)
 #name it based on the method 
-output_folder <- paste0(folder_path,cluster,"_",technique,"/")
+output_folder <- paste0(output_path,cluster,"/")
 
 
 
@@ -74,6 +90,8 @@ while (i <= length(image_files)) {
     img = power_filter(img)
   } else if (technique == "thresholding") {
     img = thresholding_filter(img)
+  } else if (technique == "opening") {
+    img = opening_filter(img)
   }
   
   # Save transformed image to output file
@@ -91,7 +109,7 @@ for(j in 1:cluster_numer){
   cell_names <- list.files(paste0(folder_path,j,"/"),
                                full.names = FALSE)
   #name it based on the method 
-  output_folder <- paste0(folder_path,j,"_",technique,"/")
+  output_folder <- paste0(output_path,j,"/")
   
   
   # if there is no folder for the cluster, create one
@@ -111,6 +129,8 @@ for(j in 1:cluster_numer){
       img = power_filter(img)
     } else if (technique == "thresholding") {
       img = thresholding_filter(img)
+    } else if (technique == "opening") {
+    img = opening_filter(img)
     }
    
     
