@@ -14,7 +14,7 @@ library(ggimage)
 # change this based on image size you want
 main_param = 224
 cluster_number = 17
-# template: alexnet_augmented_17_technique
+# template: [model type]_[preprocessing technique]_[data type] 
 modelname = 'alexnet_augmented_17_boundaries'
 ```
 
