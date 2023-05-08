@@ -233,6 +233,11 @@ table(pred_class, y_test)
 1-(sum(diag(table(pred_class, y_test)))/length(y_test))
 ```
 
+```{r}
+# resubstituition accuracy
+(sum(diag(table(pred_class, y_test)))/length(y_test))
+```
+
 # Sources and References
 
 - https://towardsdatascience.com/implementing-alexnet-cnn-architecture-using-tensorflow-2-0-and-keras-2113e090ad98 (main reference)
