@@ -138,8 +138,8 @@ num_images = dim(x_train)[1]
 # Model Creation
 
 ```{r}
-# use smaller LR - advice; non-o would no name matching bug
-model_function <- function(learning_rate = 0.000001) {
+# LR = 10^-12
+model_function <- function(learning_rate = 0.000000000001) {
   
   k_clear_session()
   
