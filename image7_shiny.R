@@ -1,6 +1,52 @@
 library(shiny)
 library(plotly)
 library(png)
+library(EBImage)
+library(SpatialPack)
+
+#NOTE: rename inputID="filename" to "filename_merge"(line67) and "filename_remove"(line111) to avoid conflics? 
+
+#functions
+#```{r}
+denoise_filter <- function(img){
+  img = denoise(as.matrix(img), type="enhanced") 
+  return(img)
+}
+
+power_filter <- function(img){
+  img = img^2.5
+  return(img)
+}
+
+thresholding_filter <- function(img){
+  img = thresh(img, w=9, h=8, offset=0.05)
+  img = fillHull(opening(img, makeBrush(5, shape='diamond')))
+  return(img)
+}
+
+opening_filter <- function(img){
+  img = opening(img, makeBrush(5, shape='diamond'))
+  return(img)
+}
+
+#Use this in the app to convert the users input image
+convert_img <- function(img, img_technique){
+  if (img_technique == "With boundary"){
+    return(img)
+  } else if (img_technique == "With Power Law and boundary"){
+    return(power_filter(img))
+  } else if (img_technique == "With Opening and boundary") {
+    return(opening_filter(img))
+  } else if (img_technique == "With Denoise and boundary") {
+    return(denoise_filter(img))
+  } else if (img_technique == "With everything"){
+    #NOTE: we haven't decide what's the best filter(maybe we don't need this?)
+    return(img)
+  }
+  
+}
+#```
+
 
 # Define UI for app that draws a histogram ----
 ui <- fluidPage(
