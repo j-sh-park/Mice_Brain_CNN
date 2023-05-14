@@ -5,6 +5,7 @@ library(keras)
 library(EBImage)
 library(SpatialPack)
 library(pracma)
+library(randomForest)
 
 # NOTE: Need an 'images' and 'cnn_models' folder in your working directory 
 addResourcePath(prefix = "imgResources", directoryPath = "./images")
@@ -168,6 +169,7 @@ ui <- fluidPage(
             )
           ),
           textOutput(outputId = "prediction"),
+          textOutput(outputId = "accuracy"),
           textOutput(outputId = "chosen_model"),
           textOutput(outputId = "chosen_technique"),
           fluidRow(
@@ -338,6 +340,55 @@ server <- function(input, output) {
     paste0("Your chosen pre-processing technique is: ", input$img_technique)
   })
   
+  output$accuracy <- renderText ({
+    req(input$filename, input$img_model, input$img_technique)
+    
+    accuracy = NULL
+    
+    if (input$img_model == 'CNN') {
+      if (!(is.null(input$boundaries_file)) && input$img_technique != 'No boundaries or techniques') {
+        if (input$img_technique == "With boundary") {
+          accuracy = "7.40%"
+        } else if (input$img_technique == "With Power Law and boundary") {
+          accuracy = "6.96%"    
+        } else if (input$img_technique == "With Thresholding and boundary") {
+          accuracy = "8.20%"
+        } else if (input$img_technique == "With Opening and boundary") {
+          accuracy = "7.58%"
+        } else if (input$img_technique == "With Denoise and boundary") {
+          accuracy = "6.83%"
+        } else if (input$img_technique == "With everything") {
+          accuracy = "-"
+        }
+      } else if (input$img_technique == 'No boundaries or techniques'){
+        # no boundaries
+        accuracy = "7.58%"
+      }
+    } else {
+      # random forest accuracies
+      if (input$img_technique == "With boundary") {
+        accuracy = "82.6%"
+      } else if (input$img_technique == "With Power Law and boundary") {
+        accuracy = "82.1%"    
+      } else if (input$img_technique == "With Thresholding and boundary") {
+        accuracy = "81.3%"
+      } else if (input$img_technique == "With Opening and boundary") {
+        accuracy = "83.1%"
+      } else if (input$img_technique == "With Denoise and boundary") {
+        accuracy = "83.2%"
+      } else if (input$img_technique == "With everything") {
+        accuracy = "-"
+      } else {
+        # no boundaries
+        accuracy = "NA"
+      }
+    }
+    if (!(is.null(accuracy))) {
+      paste0("Prediction Accuracy: ", accuracy)
+    }
+    
+  })
+  
   cnn_prediction <- function(img_technique) {
     img = convert_img(data(), img_technique)
     if (img_technique != 'No boundaries or techniques') {
@@ -347,6 +398,7 @@ server <- function(input, output) {
       img_inside = apply_boundary(img, cell_boundaries)
       img_resized = mask_resize(img, img_inside, 224, 224)
     } else {
+      # no boundaries
       img_resized = resize(img, 224, 224)
     }
     
@@ -369,33 +421,38 @@ server <- function(input, output) {
     if (img_technique == "With boundary") {
       loaded_model = readRDS("RF Models (Merged)/rf_boundaries_features.rds")
     } else if (img_technique == "With Power Law and boundary") {
-      loaded_model = readRDS("rf_models_merged/rf_power_features.rds")
+      loaded_model = readRDS("RF Models (Merged)/rf_power_features.rds")
     } else if (img_technique == "With Thresholding and boundary") {
-      loaded_model = readRDS("rf_models_merged/rf_thresholding_features.rds")
+      loaded_model = readRDS("RF Models (Merged)/rf_thresholding_features.rds")
     } else if (img_technique == "With Opening and boundary") {
-      loaded_model = readRDS("rf_models_merged/rf_opening_features.rds")
+      loaded_model = readRDS("RF Models (Merged)/rf_opening_features.rds")
     } else if (img_technique == "With Denoise and boundary") {
-      loaded_model = readRDS("rf_models_merged/rf_denoise_features.rds")
+      loaded_model = readRDS("RF Models (Merged)/rf_denoise_features.rds")
     } else if (img_technique == "With everything") {
       # NOTE: NOT YET CHOSEN
-      loaded_model = readRDS("rf_models_merged/rf_boundaries_features.rds")
+      loaded_model = readRDS("RF Models (Merged)/rf_boundaries_features.rds")
     } else {
       # no boundaries
       return("NA - Random Forest cannot compute this.")
     }
-    
+    # ensure that boundaries csv is uploaded before computing
     if (!(is.null(input$boundaries_file))) {
       cell_boundaries = read.csv(input$boundaries_file$datapath)
       img_inside = apply_boundary(img, cell_boundaries)
       img_mask = img*img_inside
-      xf = computeFeatures(img_inside, img_mask, expandRef = NULL)
-      rownames(xf) <- colnames(computeFeatures(img_inside, img_mask, expandRef = NULL))
-      res = loaded_model %>% predict(t(xf))
+      
+      xf = computeFeatures(img_inside, img, expandRef = NULL)
+      
+      rownames(xf) <- colnames(xf)
+      img_features = t(xf)
+      res = predict(loaded_model, img_features)
+      
       return(res)
     }
     return(NULL)
   }
   
+  # displays prediction text
   output$prediction <- renderText({
     # waits for technique, model
     req(input$img_technique, input$img_model)
@@ -420,11 +477,13 @@ server <- function(input, output) {
     
   })
   
+  # displays input image
   output$og_image <- renderPlot({
     req(data())
     plot(data(), all=FALSE)
   })
   
+  # displays the preprocessed image
   output$preprocessed_img <- renderPlot({
     req(input$filename, input$img_technique, data())
     if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
