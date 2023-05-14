@@ -6,7 +6,6 @@ library(EBImage)
 library(SpatialPack)
 library(pracma)
 
-
 # NOTE: Need an 'images' and 'cnn_models' folder in your working directory 
 addResourcePath(prefix = "imgResources", directoryPath = "./images")
 addResourcePath(prefix = "cnn_models", directoryPath = "./cnn_models")
@@ -153,7 +152,6 @@ ui <- fluidPage(
             label = "Choose your model",
             choices = c("Random Forest", "CNN")
           ),
-          actionButton("go", "Run")
         ),
         # Main panel for displaying outputs ----
         mainPanel(
@@ -226,24 +224,6 @@ ui <- fluidPage(
           )
         )
       )
-    ),
-    #Third tab
-    tabPanel(
-      "Comparision",
-      # Sidebar layout with input and output definitions ----
-      sidebarLayout(
-        fluidRow(
-          # Sidebar panel for inputs ----
-        ),
-        # Main panel for displaying outputs ----
-        mainPanel(
-          fluidRow(
-            # Output: Histogram ----
-            column(width = 6, plotlyOutput("plot1")),
-            column(width = 6, plotlyOutput("plot2"))
-          )
-        )
-      )
     )
   )
 )
@@ -251,207 +231,193 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram ----
 server <- function(input, output) {
   
-  
   data <- reactive({
     req(input$filename)
     img <- readImage(input$filename$datapath)
     return(img)
   })
   
-  observeEvent(input$go, {
-  #merged
-    add_model_weights_merged <- function(model) {
-      if (input$img_technique == "With boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_boundaries_weights.h5')
-      } else if (input$img_technique == "With Power Law and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      } else if (input$img_technique == "With Thresholding and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      } else if (input$img_technique == "With Opening and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_opening_merged_weights.h5')
-      } else if (input$img_technique == "With Denoise and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_merged_weights.h5')
-      } else if (input$img_technique == "With everything") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      } else {
-        # no boundaries
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      }
-      
-      return(loaded_model)
+  add_model_weights_merged <- function(model) {
+    if (input$img_technique == "With boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_boundaries_weights.h5')
+    } else if (input$img_technique == "With Power Law and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_17_augmented_power_boundaries.h5')
+    } else if (input$img_technique == "With Thresholding and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_17_augmented_threshold_boundaries.h5')
+    } else if (input$img_technique == "With Opening and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_opening_weights.hdf5')
+    } else if (input$img_technique == "With Denoise and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_merged_weights.h5')
+    } else if (input$img_technique == "With everything") {
+      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
+    } else {
+      # no boundaries
+      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     }
     
-    
-  #removed  
-    add_model_weights_removed<- function(model) {
-      if (input$img_technique == "With boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_boundaries_weights.h5')
-      } else if (input$img_technique == "With Power Law and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      } else if (input$img_technique == "With Thresholding and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      } else if (input$img_technique == "With Opening and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_opening_removed_weights.h5')
-      } else if (input$img_technique == "With Denoise and boundary") {
-        loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_removed_weights.h5')
-      } else if (input$img_technique == "With everything") {
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      } else {
-        # no boundaries
-        loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
-      }
-      
-      return(loaded_model)
+    return(loaded_model)
+  }
+  
+  add_model_weights_removed<- function(model) {
+    if (input$img_technique == "With boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_boundaries_weights.h5')
+    } else if (input$img_technique == "With Power Law and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_17_augmented_power_boundaries.h5')
+    } else if (input$img_technique == "With Thresholding and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_17_thresholding_boundaries.h5')
+    } else if (input$img_technique == "With Opening and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_opening_removed_weights.h5')
+    } else if (input$img_technique == "With Denoise and boundary") {
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_removed_weights.h5')
+    } else if (input$img_technique == "With everything") {
+      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
+    } else {
+      # no boundaries
+      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     }
     
-    apply_boundary <- function(img, cell_boundary) {
-      # rescale the boundary according to the pixels
-      pixels = dim(img)
-      cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
-      cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
-      
-      # identify which pixels are inside or outside of the cell segment using inpolygon
-      pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
-      
-      pixels_inside = inpolygon(x = pixel_locations[,1],
-                                y = pixel_locations[,2],
-                                xp = cell_boundary$vertex_x_scaled,
-                                yp = cell_boundary$vertex_y_scaled,
-                                boundary = TRUE)
-      
-      img_inside = img
-      img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
-      
-      return(img_inside)
-    }
+    return(loaded_model)
+  }
+  
+  apply_boundary <- function(img, cell_boundary) {
+    # rescale the boundary according to the pixels
+    pixels = dim(img)
+    cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+    cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
     
-    mask_resize = function(img, img_inside, w = 50, h = 50) {
-      
-      img_mask = img*img_inside
-      
-      # then, transform the masked image to the same number of pixels, 50x50
-      img_mask_resized = resize(img_mask, w, h)
-      
-      return(img_mask_resized)
-    }
+    # identify which pixels are inside or outside of the cell segment using inpolygon
+    pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
     
-    output$chosen_model <- renderText ({
-      req(input$filename, input$img_model, input$img_technique)
-      paste0("Your chosen model is: ", input$img_model)
-    })
+    pixels_inside = inpolygon(x = pixel_locations[,1],
+                              y = pixel_locations[,2],
+                              xp = cell_boundary$vertex_x_scaled,
+                              yp = cell_boundary$vertex_y_scaled,
+                              boundary = TRUE)
     
-    output$chosen_technique <- renderText ({
-      req(input$filename, input$img_model, input$img_technique)
-      paste0("Your chosen pre-processing technique is: ", input$img_technique)
-    })
+    img_inside = img
+    img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
     
-    output$chosen_model <- renderText ({
-      req(input$filename, input$img_model, input$img_technique)
-      paste0("Your chosen model is: ", input$img_model)
-    })
+    return(img_inside)
+  }
+  
+  mask_resize = function(img, img_inside, w = 50, h = 50) {
     
-    output$chosen_technique <- renderText ({
-      req(input$filename, input$img_model, input$img_technique)
-      paste0("Your chosen pre-processing technique is: ", input$img_technique)
-    })
+    img_mask = img*img_inside
     
-    cnn_prediction <- function(img_technique) {
-      img = convert_img(data(), img_technique)
-      if (img_technique != 'No boundaries or techniques') {
-        # apply boundaries
-        req(input$boundaries_file)
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_inside = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_inside, 224, 224)
-      } else {
-        img_resized = resize(img, 224, 224)
-      }
-      
-      x <- array(dim=c(1, 224, 224, 1))
-      x[1,,,1] <- img_resized@.Data
-      input_shape = dim(x)[2:4]
-      model = create_model(input_shape = input_shape)
-      loaded_model = add_model_weights_merged(model)
-      
-      res = loaded_model %>% predict(x)
-      predicted_class = apply(res, 1, which.max)
-      
-      return(predicted_class)
-      
-    }
+    # then, transform the masked image to the same number of pixels, 50x50
+    img_mask_resized = resize(img_mask, w, h)
     
-    rf_prediction <- function(img_technique) {
-      
-      img = convert_img(data(), img_technique)
-      if (img_technique == "With boundary") {
-        loaded_model = readRDS("rf_models_merged/rf_boundaries_features.rds")
-      } else if (img_technique == "With Power Law and boundary") {
-        loaded_model = readRDS("rf_models_merged/rf_power_features.rds")
-      } else if (img_technique == "With Thresholding and boundary") {
-        loaded_model = readRDS("rf_models_merged/rf_thresholding_features.rds")
-      } else if (img_technique == "With Opening and boundary") {
-        loaded_model = readRDS("rf_models_merged/rf_opening_features.rds")
-      } else if (img_technique == "With Denoise and boundary") {
-        loaded_model = readRDS("rf_models_merged/rf_denoise_features.rds")
-      } else if (img_technique == "With everything") {
-        # NOTE: NOT YET CHOSEN
-        loaded_model = readRDS("rf_models_merged/rf_boundaries_features.rds")
-      } else {
-        # no boundaries
-        return("NA - Random Forest cannot compute this.")
-      }
-      
-      # if (!(is.null(input$boundaries_file))) {
-      #   cell_boundaries = read.csv(input$boundaries_file$datapath)
-      #   img_inside = apply_boundary(img, cell_boundaries)
-      #   img_mask = img*img_inside
-      #   # uhm help
-      #   res = loaded_model %>% predict(x)
-      #   return(res)
-      # }
-    }
-    
-    output$prediction <- renderText({
-      # waits for technique, model
-      req(input$img_technique, input$img_model)
-      predicted_class = NULL
-      
-      if (input$img_model == 'CNN') {
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'No boundaries or techniques') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-      } else {
-        # random forest
-        #predicted_class = rf_prediction(input$img_technique)
-        predicted_class = "hello i need help with rf lmao"
-      }
-      
-      if (is.null(predicted_class)) {
-        paste0("Please choose a model and technique. If you have chosen techniques with boundaries, please include the CSV file containing the boundaries.")
-      } else {
-        paste0("The predicted cluster is: ", predicted_class)
-      }
-      
-    })
-    
-    output$og_image <- renderPlot({
-      req(data())
-      plot(data(), all=FALSE)
-    })
-    
-    output$preprocessed_img <- renderPlot({
-      req(input$filename, input$img_technique, data())
-      if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-    }) 
+    return(img_mask_resized)
+  }
+  
+  output$chosen_model <- renderText ({
+    req(input$filename, input$img_model, input$img_technique)
+    paste0("Your chosen model is: ", input$img_model)
   })
+  
+  output$chosen_technique <- renderText ({
+    req(input$filename, input$img_model, input$img_technique)
+    paste0("Your chosen pre-processing technique is: ", input$img_technique)
+  })
+  
+  cnn_prediction <- function(img_technique) {
+    img = convert_img(data(), img_technique)
+    if (img_technique != 'No boundaries or techniques') {
+      # apply boundaries
+      req(input$boundaries_file)
+      cell_boundaries = read.csv(input$boundaries_file$datapath)
+      img_inside = apply_boundary(img, cell_boundaries)
+      img_resized = mask_resize(img, img_inside, 224, 224)
+    } else {
+      img_resized = resize(img, 224, 224)
+    }
+    
+    x <- array(dim=c(1, 224, 224, 1))
+    x[1,,,1] <- img_resized@.Data
+    input_shape = dim(x)[2:4]
+    model = create_model(input_shape = input_shape)
+    loaded_model = add_model_weights_merged(model)
+    
+    res = loaded_model %>% predict(x)
+    predicted_class = apply(res, 1, which.max)
+    
+    return(predicted_class)
+    
+  }
+  
+  rf_prediction <- function(img_technique) {
+    
+    img = convert_img(data(), img_technique)
+    if (img_technique == "With boundary") {
+      loaded_model = readRDS("RF Models (Merged)/rf_boundaries_features.rds")
+    } else if (img_technique == "With Power Law and boundary") {
+      loaded_model = readRDS("rf_models_merged/rf_power_features.rds")
+    } else if (img_technique == "With Thresholding and boundary") {
+      loaded_model = readRDS("rf_models_merged/rf_thresholding_features.rds")
+    } else if (img_technique == "With Opening and boundary") {
+      loaded_model = readRDS("rf_models_merged/rf_opening_features.rds")
+    } else if (img_technique == "With Denoise and boundary") {
+      loaded_model = readRDS("rf_models_merged/rf_denoise_features.rds")
+    } else if (img_technique == "With everything") {
+      # NOTE: NOT YET CHOSEN
+      loaded_model = readRDS("rf_models_merged/rf_boundaries_features.rds")
+    } else {
+      # no boundaries
+      return("NA - Random Forest cannot compute this.")
+    }
+    
+    if (!(is.null(input$boundaries_file))) {
+      cell_boundaries = read.csv(input$boundaries_file$datapath)
+      img_inside = apply_boundary(img, cell_boundaries)
+      img_mask = img*img_inside
+      xf = computeFeatures(img_inside, img_mask, expandRef = NULL)
+      rownames(xf) <- colnames(computeFeatures(img_inside, img_mask, expandRef = NULL))
+      res = loaded_model %>% predict(t(xf))
+      return(res)
+    }
+    return(NULL)
+  }
+  
+  output$prediction <- renderText({
+    # waits for technique, model
+    req(input$img_technique, input$img_model)
+    predicted_class = NULL
+    
+    if (input$img_model == 'CNN') {
+      if (!(is.null(input$boundaries_file)) && input$img_technique != 'No boundaries or techniques') {
+        predicted_class = cnn_prediction(input$img_technique)
+      }
+      predicted_class = cnn_prediction(input$img_technique)
+    } else {
+      # random forest
+      predicted_class = rf_prediction(input$img_technique)
+      #predicted_class = "hello i need help with rf lmao"
+    }
+    
+    if (is.null(predicted_class)) {
+      paste0("Please choose a model and technique. If you have chosen techniques with boundaries, please include the CSV file containing the boundaries.")
+    } else {
+      paste0("The predicted cluster is: ", predicted_class)
+    }
+    
+  })
+  
+  output$og_image <- renderPlot({
+    req(data())
+    plot(data(), all=FALSE)
+  })
+  
+  output$preprocessed_img <- renderPlot({
+    req(input$filename, input$img_technique, data())
+    if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
+      img = convert_img(data(), input$img_technique)
+      # apply boundaries
+      cell_boundaries = read.csv(input$boundaries_file$datapath)
+      img_resized = apply_boundary(img, cell_boundaries)
+      img_resized = mask_resize(img, img_resized)
+      plot(img_resized, all=FALSE)
+    }
+  }) 
 }
 
 
