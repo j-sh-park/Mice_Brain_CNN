@@ -4,6 +4,7 @@ library(png)
 library(keras)
 library(EBImage)
 library(SpatialPack)
+library(pracma)
 
 
 # NOTE: Need an 'images' and 'cnn_models' folder in your working directory 
@@ -344,32 +345,6 @@ server <- function(input, output) {
       paste0("Your chosen pre-processing technique is: ", input$img_technique)
     })
     
-    cnn_prediction <- function(img_technique) {
-      img = convert_img(data(), img_technique)
-      if (img_technique != 'No boundaries or techniques') {
-        # apply boundaries
-        req(input$boundaries_file)
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_inside = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_inside, 224, 224)
-      } else {
-        img_resized = resize(img, 224, 224)
-      }
-      
-      x <- array(dim=c(1, 224, 224, 1))
-      x[1,,,1] <- img_resized@.Data
-      input_shape = dim(x)[2:4]
-      model = create_model(input_shape = input_shape)
-      loaded_model = add_model_weights_merged(model)
-      
-      res = loaded_model %>% predict(x)
-      predicted_class = apply(res, 1, which.max)
-      
-      return(predicted_class)
-      
-    }
-    
-    
     output$chosen_model <- renderText ({
       req(input$filename, input$img_model, input$img_technique)
       paste0("Your chosen model is: ", input$img_model)
@@ -446,37 +421,6 @@ server <- function(input, output) {
           predicted_class = cnn_prediction(input$img_technique)
         }
         predicted_class = cnn_prediction(input$img_technique)
-        
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'With boundary') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-        
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'With Power Law and boundary') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-        
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'With Thresholding and boundary') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-        
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'With Opening and boundary') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-        
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'With Denoise and boundary') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-        
-        if (!(is.null(input$boundaries_file)) && input$img_technique != 'With everything') {
-          predicted_class = cnn_prediction(input$img_technique)
-        }
-        predicted_class = cnn_prediction(input$img_technique)
-        
       } else {
         # random forest
         #predicted_class = rf_prediction(input$img_technique)
@@ -499,60 +443,6 @@ server <- function(input, output) {
     output$preprocessed_img <- renderPlot({
       req(input$filename, input$img_technique, data())
       if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-      
-      if (input$img_technique != 'With boundary' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-      
-      if (input$img_technique != 'With Power Law and boundary' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-      
-      if (input$img_technique != 'With Thresholding and boundary' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-      
-      if (input$img_technique != 'With Opening and boundary' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-      
-      if (input$img_technique != 'With Denoise and boundary' && !(is.null(input$boundaries_file))) {
-        img = convert_img(data(), input$img_technique)
-        # apply boundaries
-        cell_boundaries = read.csv(input$boundaries_file$datapath)
-        img_resized = apply_boundary(img, cell_boundaries)
-        img_resized = mask_resize(img, img_resized)
-        plot(img_resized, all=FALSE)
-      }
-      
-      if (input$img_technique != 'With everything' && !(is.null(input$boundaries_file))) {
         img = convert_img(data(), input$img_technique)
         # apply boundaries
         cell_boundaries = read.csv(input$boundaries_file$datapath)
