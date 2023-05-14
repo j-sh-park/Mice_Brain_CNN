@@ -272,7 +272,7 @@ server <- function(input, output) {
       loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     } else {
       # no boundaries
-      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_raw_weights.hdf5')
     }
     
     return(loaded_model)
@@ -293,7 +293,7 @@ server <- function(input, output) {
       loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     } else {
       # no boundaries
-      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_raw_weights.hdf5')
     }
     
     return(loaded_model)
