@@ -224,6 +224,24 @@ ui <- fluidPage(
           )
         )
       )
+    ),
+    #Third tab
+    tabPanel(
+      "Comparision",
+      # Sidebar layout with input and output definitions ----
+      sidebarLayout(
+        fluidRow(
+          # Sidebar panel for inputs ----
+        ),
+        # Main panel for displaying outputs ----
+        mainPanel(
+          fluidRow(
+            # Output: Histogram ----
+            #column(width = 6, plotlyOutput("plot1")),
+            #column(width = 6, plotlyOutput("plot2"))
+          )
+        )
+      )
     )
   )
 )
