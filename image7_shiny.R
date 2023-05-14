@@ -111,7 +111,7 @@ ui <- fluidPage(
   # App title ----
   titlePanel(
     ("Image 7")
-    ),
+  ),
   
   tabsetPanel(
     # First tab
@@ -164,8 +164,8 @@ ui <- fluidPage(
                    fluidRow(
                      column(2, plotOutput(outputId ='og_image', width='250px', height='250px'))
                      #column(4, "Original Image")
-                     )
                    )
+            )
           ),
           textOutput(outputId = "prediction"),
           textOutput(outputId = "chosen_model"),
@@ -221,6 +221,24 @@ ui <- fluidPage(
             # column(width = 6, plotlyOutput("plot1")),
             # column(width = 6, plotlyOutput("plot2"))
             #column(6, offset = 3, plotOutput(outputId ='raster', width='100px', height='100px'))
+          )
+        )
+      )
+    ),
+    #Third tab
+    tabPanel(
+      "Comparision",
+      # Sidebar layout with input and output definitions ----
+      sidebarLayout(
+        fluidRow(
+          # Sidebar panel for inputs ----
+        ),
+        # Main panel for displaying outputs ----
+        mainPanel(
+          fluidRow(
+            # Output: Histogram ----
+            column(width = 6, plotlyOutput("plot1")),
+            column(width = 6, plotlyOutput("plot2"))
           )
         )
       )
@@ -417,6 +435,6 @@ server <- function(input, output) {
     }
   }) 
 }
-      
+
 
 shinyApp(ui = ui, server = server)
