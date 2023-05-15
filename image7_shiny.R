@@ -438,16 +438,18 @@ server <- function(input, output) {
     # ensure that boundaries csv is uploaded before computing
     if (!(is.null(input$boundaries_file))) {
       cell_boundaries = read.csv(input$boundaries_file$datapath)
+      
+      # note: ASSUMPTION THAT THE INPUT IMAGE IS NAMED cell_<ID>.png
+      cell_id = gsub(".*cell_|.png", "", input$filename$name)
       img_inside = apply_boundary(img, cell_boundaries)
-      img_mask = img*img_inside
+      img_mask = mask_resize(img, img_inside, 224, 224)
       
       xf = computeFeatures(img_inside, img, expandRef = NULL)
+      rownames(xf) <- cell_id
+      res = predict(loaded_model, xf)
+      predicted_class = gsub(".*cluster_|", "", res)
       
-      rownames(xf) <- colnames(xf)
-      img_features = t(xf)
-      res = predict(loaded_model, img_features)
-      
-      return(res)
+      return(predicted_class)
     }
     return(NULL)
   }
