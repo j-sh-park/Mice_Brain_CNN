@@ -1,4 +1,5 @@
 library(shiny)
+library(ggplot2)
 library(plotly)
 library(png)
 library(keras)
@@ -229,19 +230,54 @@ ui <- fluidPage(
     ),
     #Third tab
     tabPanel(
-      "Comparision",
+      "Evaluation & Discussion",
       # Sidebar layout with input and output definitions ----
-      sidebarLayout(
-        fluidRow(
-          # Sidebar panel for inputs ----
-        ),
-        # Main panel for displaying outputs ----
-        mainPanel(
-          fluidRow(
-            # Output: Histogram ----
-            #column(width = 6, plotlyOutput("plot1")),
-            #column(width = 6, plotlyOutput("plot2"))
-          )
+      fixedRow(
+        column(12,
+               fixedRow(
+                 column(6,
+                        tags$b(tags$h3("CNN (AlexNet)")),
+                        fluidRow(column(12,
+                                        tags$h4("Accuracy"),
+                                        plotlyOutput(outputId = "cnn_acc_comparison"),
+                                        "Insert text here"
+                                        
+                        )), 
+                        fluidRow(column(12,
+                                        tags$h4("Robustness"),
+                                        #plotOutput(outputId ='og_image', width='250px', height='250px'),
+                                        #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
+                                        "Insert text here"
+                        )),
+                        fluidRow(column(12,
+                                        tags$h4("Interpretability"),
+                                        #plotOutput(outputId ='og_image', width='250px', height='250px'),
+                                        #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
+                                        "Insert text here"
+                        ))
+                        
+                 ),
+                 column(6,
+                        tags$b(tags$h3("Random Forest")),
+                        fluidRow(column(12,
+                                        tags$h4("Accuracy"),
+                                        plotlyOutput(outputId = "rf_acc_comparison"),
+                                        plotlyOutput(outputId = "rf_boxplot"),
+                                        
+                                        "Insert text here"
+                        )), 
+                        fluidRow(column(12,
+                                        tags$h4("Robustness"),
+                                        "Insert text here"
+                        )),
+                        fluidRow(column(12,
+                                        tags$h4("Interpretability"),
+                                        #plotOutput(outputId ='og_image', width='250px', height='250px'),
+                                        #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
+                                        "Insert text here"
+                        ))
+                 )
+               )
         )
       )
     )
@@ -496,7 +532,67 @@ server <- function(input, output) {
       img_resized = mask_resize(img, img_resized)
       plot(img_resized, all=FALSE)
     }
-  }) 
+  })
+  
+  output$noisy_image <- renderPlot({
+    req(data())
+    plot(data()*5, all=FALSE)
+  })
+  
+  output$cnn_acc_comparison <- renderPlotly({
+    cnn_model_technique <-  c("Raw Image", "With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
+    accuracy <- c(0.0757764, 0.074, 0.06956522, 0.08198758, 0.0757764, 0.06832298, 0.04968944, 0.05590062, 0.06335404, 0.0621118, 0.0621118, 0.0608696)
+    data_type <- factor(c("Merged", "Merged", "Merged", "Merged", "Merged", "Merged", "Removed", "Removed", "Removed", "Removed", "Removed", "Removed"))
+    
+    cnn_data <- data.frame(cnn_model_technique, accuracy, data_type)
+    p3 <- ggplot(data = cnn_data, aes(x = cnn_model_technique, y = accuracy, fill = data_type)) + 
+      geom_bar(stat = 'identity', position = position_dodge()) + 
+      labs(x = "Neural Network Model", y = "Accuracy", title = "Accuracies of CNN Deep Learning Models\non Image Preprocessing Techniques (Merged)", fill = "CNN Model")
+    
+    ggplotly(p3)
+  })
+  
+  output$rf_acc_comparison <- renderPlotly({
+    rf_model_technique <-  c("With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
+    accuracy <- c(0.826, 0.831, 0.821, 0.832, 0.813, 0.842, 0.839, 0.842, 0.831, 0.833)
+    data_type <- factor(c("Merged", "Merged", "Merged", "Merged", "Merged", "Removed", "Removed", "Removed", "Removed", "Removed"))
+    
+    df <- data.frame(rf_model_technique, accuracy, data_type)
+    p <- ggplot(data = df, aes(x = rf_model_technique, y = accuracy, fill = data_type)) + 
+      geom_bar(stat = 'identity', position = position_dodge()) + 
+      ggtitle("Comparison of Random Forest Machine Learning Models\nby their Image Preprocessing Technique") + 
+      xlab("Random Forest Model") + 
+      ylab("Accuracy")
+    
+    ggplotly(p)
+  })
+  
+  output$rf_boxplot <- renderPlotly({
+    cv_acc_rff_bound = c(0.8152941, 0.7917647, 0.8376471,  0.8000000, 0.8000000)
+    cv_acc_rff_denoise = c(0.7952941, 0.8470588, 0.8329412,  0.8141176, 0.7858824)
+    cv_acc_rff_opening = c(0.8152941, 0.7917647, 0.8376471,  0.8000000, 0.8000000)
+    
+    cv_acc_rff_power = c(0.7988235, 0.8200000, 0.8317647,  0.8411765, 0.8117647)
+    
+    cv_acc_rff_thresh = c(0.8070588, 0.8176471, 0.7929412,  0.8082353, 0.8364706)
+    barplot_df = data.frame(accuracy = c(cv_acc_rff_bound,
+                                         cv_acc_rff_denoise, 
+                                         cv_acc_rff_opening,
+                                         cv_acc_rff_power,
+                                         cv_acc_rff_thresh),
+                            model = c(rep("Boundary", length(cv_acc_rff_bound)),
+                                      rep("Denoise", length(cv_acc_rff_denoise)),
+                                      rep("Opening", length(cv_acc_rff_opening)),
+                                      rep("Power Law", length(cv_acc_rff_power)),
+                                      rep("Thresholding", length(cv_acc_rff_thresh))))
+    
+    p2 <- ggplot(data = barplot_df, aes(x = model, y = accuracy, fill = model)) + 
+      geom_boxplot() + 
+      labs(x = "Random Forest Model", y = "5-fold CV Accuracy", title = "Distribution of 5-fold CV accuracies\nfor Random Forest Models on Image Preprocessing Techniques (Merged)", fill = "RF Model")
+    
+    ggplotly(p2)
+  })
+  
 }
 
 
