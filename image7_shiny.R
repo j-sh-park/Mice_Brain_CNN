@@ -12,6 +12,7 @@ library(randomForest)
 addResourcePath(prefix = "imgResources", directoryPath = "./images")
 addResourcePath(prefix = "cnn_models", directoryPath = "./cnn_models")
 addResourcePath(prefix = "rf_models_merged", directoryPath = "./RF Models (Merged)")
+addResourcePath(prefix = "resources", directoryPath = "./resources")
 #addResourcePath(prefix = "rf_models_removed", directoryPath = "./RF Models (Removed)")
 #NOTE: rename inputID="filename" to "filename_merge"(line67) and "filename_remove"(line111) to avoid conflics? 
 
@@ -236,44 +237,41 @@ ui <- fluidPage(
         column(12,
                fixedRow(
                  column(6,
-                        tags$b(tags$h3("CNN (AlexNet)")),
+                        h3(strong(("CNN (AlexNet)"))),
                         fluidRow(column(12,
-                                        tags$h4("Accuracy"),
+                                        h4(strong("Accuracy")),
                                         plotlyOutput(outputId = "cnn_acc_comparison"),
                                         "Insert text here"
                                         
                         )), 
                         fluidRow(column(12,
-                                        tags$h4("Robustness"),
+                                        h4(strong("Robustness")),
                                         #plotOutput(outputId ='og_image', width='250px', height='250px'),
                                         #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
                                         "Insert text here"
                         )),
                         fluidRow(column(12,
-                                        tags$h4("Interpretability"),
-                                        #plotOutput(outputId ='og_image', width='250px', height='250px'),
-                                        #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
+                                        h4(strong("Interpretability")),
+                                        imageOutput(outputId = 'cnn_archi'),
                                         "Insert text here"
                         ))
                         
                  ),
                  column(6,
-                        tags$b(tags$h3("Random Forest")),
+                        h3(strong("Random Forest")),
                         fluidRow(column(12,
-                                        tags$h4("Accuracy"),
+                                        h4(strong("Accuracy")),
                                         plotlyOutput(outputId = "rf_acc_comparison"),
                                         plotlyOutput(outputId = "rf_boxplot"),
                                         
                                         "Insert text here"
                         )), 
                         fluidRow(column(12,
-                                        tags$h4("Robustness"),
+                                        h4(strong("Robustness")),
                                         "Insert text here"
                         )),
                         fluidRow(column(12,
-                                        tags$h4("Interpretability"),
-                                        #plotOutput(outputId ='og_image', width='250px', height='250px'),
-                                        #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
+                                        h4(strong("Interpretability")),
                                         "Insert text here"
                         ))
                  )
@@ -538,6 +536,12 @@ server <- function(input, output) {
     req(data())
     plot(data()*5, all=FALSE)
   })
+  
+  output$cnn_archi<- renderImage({
+    
+    list(src = "resources/model_architecture.png", width = "90%")
+    
+  }, deleteFile = F)
   
   output$cnn_acc_comparison <- renderPlotly({
     cnn_model_technique <-  c("Raw Image", "With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
