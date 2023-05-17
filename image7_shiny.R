@@ -1,20 +1,19 @@
 library(shiny)
 library(ggplot2)
 library(plotly)
-library(png)
 library(keras)
 library(EBImage)
 library(SpatialPack)
 library(pracma)
 library(randomForest)
 
-# NOTE: Need an 'images' and 'cnn_models' folder in your working directory 
+# NOTE: Need an 'images' and 'cnn_models' folder in your working directory for user input & cnn models
 addResourcePath(prefix = "imgResources", directoryPath = "./images")
 addResourcePath(prefix = "cnn_models", directoryPath = "./cnn_models")
+
 addResourcePath(prefix = "rf_models_merged", directoryPath = "./RF Models (Merged)")
 addResourcePath(prefix = "resources", directoryPath = "./resources")
-#addResourcePath(prefix = "rf_models_removed", directoryPath = "./RF Models (Removed)")
-#NOTE: rename inputID="filename" to "filename_merge"(line67) and "filename_remove"(line111) to avoid conflics? 
+addResourcePath(prefix = "rf_models_removed", directoryPath = "./RF Models (Removed)")
 
 #functions
 denoise_filter <- function(img){
@@ -114,11 +113,18 @@ create_model <- function(learning_rate = 0.000000000001, input_shape=c(224, 224,
 ui <- fluidPage(
   # App title ----
   titlePanel(
-    ("Image 7")
+    ("Image7")
   ),
   
-  tabsetPanel(
-    # First tab
+  tabsetPanel( 
+    tabPanel (
+      "Introduction",
+      h2(strong("Image Classification via Deep Learning and Random Forest")),
+      h3("Investigation of the impact of pre-processing techniques on the training dataset and its effect on the accuracy of deep learning and machine learning models"),
+      p("Insert text here")
+    ),
+    
+    # 2nd tab
     tabPanel(
       "Merge Cluster",
       # Sidebar layout with input and output definitions ----
@@ -172,8 +178,10 @@ ui <- fluidPage(
           ),
           textOutput(outputId = "prediction"),
           textOutput(outputId = "accuracy"),
+          br(),
           textOutput(outputId = "chosen_model"),
           textOutput(outputId = "chosen_technique"),
+          br(),
           fluidRow(
             # Output: Histogram ----
             # column(width = 6, plotlyOutput("plot1")),
@@ -184,7 +192,7 @@ ui <- fluidPage(
       )
     ),
     
-    # Second tab
+    # Third tab
     tabPanel(
       "Remove Cluster",
       # Sidebar layout with input and output definitions ----
@@ -192,13 +200,13 @@ ui <- fluidPage(
         # Sidebar panel for inputs ----
         sidebarPanel(
           fileInput(
-            inputId= "filename",
+            inputId= "filename_removed",
             label="Upload a PNG file",
             multiple=FALSE,
             accept=c("image/png")
           ),
           selectInput(
-            inputId = "img_technique", 
+            inputId = "img_technique_removed", 
             label= "Choose one technique for your model",
             choices = c(
               "No boundaries or techniques", 
@@ -210,28 +218,50 @@ ui <- fluidPage(
               "With everything"
             )
           ),
+          fileInput(
+            inputId= "boundaries_file_removed",
+            label="Upload the CSV file containing the cell boundaries",
+            multiple=FALSE,
+            accept=c("text/csv")
+          ),
           selectInput(
-            inputId = "img_model", 
+            inputId = "img_model_removed", 
             label = "Choose your model",
             choices = c("Random Forest", "CNN")
           ),
-          actionButton("go", "Run")
         ),
         # Main panel for displaying outputs ----
         mainPanel(
-          #textOutput(outputId = "prediction"),
           fluidRow(
             # Output: Histogram ----
             # column(width = 6, plotlyOutput("plot1")),
             # column(width = 6, plotlyOutput("plot2"))
-            #column(6, offset = 3, plotOutput(outputId ='raster', width='100px', height='100px'))
+            
+            column(6, offset = 3, 
+                   fluidRow(
+                     column(2, plotOutput(outputId ='og_image_removed', width='250px', height='250px'))
+                     #column(4, "Original Image")
+                   )
+            )
+          ),
+          textOutput(outputId = "prediction_removed"),
+          textOutput(outputId = "accuracy_removed"),
+          br(),
+          textOutput(outputId = "chosen_model_removed"),
+          textOutput(outputId = "chosen_technique_removed"),
+          br(),
+          fluidRow(
+            # Output: Histogram ----
+            # column(width = 6, plotlyOutput("plot1")),
+            # column(width = 6, plotlyOutput("plot2"))
+            column(6, offset = 3, plotOutput(outputId ='preprocessed_img_removed', width='250px', height='250px'))
           )
         )
       )
     ),
     #Third tab
     tabPanel(
-      "Evaluation & Discussion",
+      "Performance & Interpretability",
       # Sidebar layout with input and output definitions ----
       fixedRow(
         column(12,
@@ -241,19 +271,17 @@ ui <- fluidPage(
                         fluidRow(column(12,
                                         h4(strong("Accuracy")),
                                         plotlyOutput(outputId = "cnn_acc_comparison"),
-                                        "Insert text here"
+                                        p("Insert text here")
                                         
                         )), 
                         fluidRow(column(12,
                                         h4(strong("Robustness")),
-                                        #plotOutput(outputId ='og_image', width='250px', height='250px'),
-                                        #plotOutput(outputId ='noisy_image', width='250px', height='250px'),
-                                        "Insert text here"
+                                        p("Insert text here")
                         )),
                         fluidRow(column(12,
                                         h4(strong("Interpretability")),
                                         imageOutput(outputId = 'cnn_archi'),
-                                        "Insert text here"
+                                        p("Insert text here")
                         ))
                         
                  ),
@@ -261,18 +289,17 @@ ui <- fluidPage(
                         h3(strong("Random Forest")),
                         fluidRow(column(12,
                                         h4(strong("Accuracy")),
-                                        plotlyOutput(outputId = "rf_acc_comparison"),
                                         plotlyOutput(outputId = "rf_boxplot"),
                                         
-                                        "Insert text here"
+                                        p("Insert text here")
                         )), 
                         fluidRow(column(12,
                                         h4(strong("Robustness")),
-                                        "Insert text here"
+                                        p("Insert text here")
                         )),
                         fluidRow(column(12,
                                         h4(strong("Interpretability")),
-                                        "Insert text here"
+                                        p("Insert text here")
                         ))
                  )
                )
@@ -288,6 +315,12 @@ server <- function(input, output) {
   data <- reactive({
     req(input$filename)
     img <- readImage(input$filename$datapath)
+    return(img)
+  })
+  
+  data_removed <- reactive({
+    req(input$filename_removed)
+    img <- readImage(input$filename_removed$datapath)
     return(img)
   })
   
@@ -313,17 +346,17 @@ server <- function(input, output) {
   }
   
   add_model_weights_removed<- function(model) {
-    if (input$img_technique == "With boundary") {
+    if (input$img_technique_removed == "With boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_boundaries_weights.h5')
-    } else if (input$img_technique == "With Power Law and boundary") {
+    } else if (input$img_technique_removed == "With Power Law and boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_17_augmented_power_boundaries.h5')
-    } else if (input$img_technique == "With Thresholding and boundary") {
+    } else if (input$img_technique_removed == "With Thresholding and boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_17_thresholding_boundaries.h5')
-    } else if (input$img_technique == "With Opening and boundary") {
+    } else if (input$img_technique_removed == "With Opening and boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_opening_removed_weights.h5')
-    } else if (input$img_technique == "With Denoise and boundary") {
+    } else if (input$img_technique_removed == "With Denoise and boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_removed_weights.h5')
-    } else if (input$img_technique == "With everything") {
+    } else if (input$img_technique_removed == "With everything") {
       loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     } else {
       # no boundaries
@@ -372,6 +405,17 @@ server <- function(input, output) {
   output$chosen_technique <- renderText ({
     req(input$filename, input$img_model, input$img_technique)
     paste0("Your chosen pre-processing technique is: ", input$img_technique)
+  })
+  
+  # REMOVED CLUSTER ------------
+  output$chosen_model_removed <- renderText ({
+    req(input$filename_removed, input$img_model_removed, input$img_technique_removed)
+    paste0("Your chosen model is: ", input$img_model_removed)
+  })
+  
+  output$chosen_technique_removed <- renderText ({
+    req(input$filename_removed, input$img_model_removed, input$img_technique_removed)
+    paste0("Your chosen pre-processing technique is: ", input$img_technique_removed)
   })
   
   output$accuracy <- renderText ({
@@ -423,12 +467,87 @@ server <- function(input, output) {
     
   })
   
+  output$accuracy_removed <- renderText ({
+    req(input$filename_removed, input$img_model_removed, input$img_technique_removed)
+    
+    accuracy = NULL
+    
+    if (input$img_model_removed == 'CNN') {
+      if (!(is.null(input$boundaries_file_removed)) && input$img_technique_removed != 'No boundaries or techniques') {
+        if (input$img_technique_removed == "With boundary") {
+          accuracy = "5.60%"
+        } else if (input$img_technique_removed == "With Power Law and boundary") {
+          accuracy = "6.33%"    
+        } else if (input$img_technique_removed == "With Thresholding and boundary") {
+          accuracy = "6.21%"
+        } else if (input$img_technique_removed == "With Opening and boundary") {
+          accuracy = "6.21%"
+        } else if (input$img_technique_removed == "With Denoise and boundary") {
+          accuracy = "6.09%"
+        } else if (input$img_technique_removed == "With everything") {
+          accuracy = "-"
+        }
+      } else if (input$img_technique_removed == 'No boundaries or techniques'){
+        # no boundaries
+        accuracy = "4.97%"
+      }
+    } else {
+      # random forest accuracies
+      if (input$img_technique_removed == "With boundary") {
+        accuracy = "84.1%"
+      } else if (input$img_technique_removed == "With Power Law and boundary") {
+        accuracy = "84.2%"    
+      } else if (input$img_technique_removed == "With Thresholding and boundary") {
+        accuracy = "83.3%"
+      } else if (input$img_technique_removed == "With Opening and boundary") {
+        accuracy = "83.9%"
+      } else if (input$img_technique_removed == "With Denoise and boundary") {
+        accuracy = "83.1%"
+      } else if (input$img_technique_removed == "With everything") {
+        accuracy = "-"
+      } else {
+        # no boundaries
+        accuracy = "NA"
+      }
+    }
+    if (!(is.null(accuracy))) {
+      paste0("Prediction Accuracy: ", accuracy)
+    }
+    
+  })
+  
   cnn_prediction <- function(img_technique) {
     img = convert_img(data(), img_technique)
     if (img_technique != 'No boundaries or techniques') {
       # apply boundaries
       req(input$boundaries_file)
       cell_boundaries = read.csv(input$boundaries_file$datapath)
+      img_inside = apply_boundary(img, cell_boundaries)
+      img_resized = mask_resize(img, img_inside, 224, 224)
+    } else {
+      # no boundaries
+      img_resized = resize(img, 224, 224)
+    }
+    
+    x <- array(dim=c(1, 224, 224, 1))
+    x[1,,,1] <- img_resized@.Data
+    input_shape = dim(x)[2:4]
+    model = create_model(input_shape = input_shape)
+    loaded_model = add_model_weights_merged(model)
+    
+    res = loaded_model %>% predict(x)
+    predicted_class = apply(res, 1, which.max)
+    
+    return(predicted_class)
+    
+  }
+  
+  cnn_prediction_removed <- function(img_technique) {
+    img = convert_img(data_removed(), img_technique)
+    if (img_technique != 'No boundaries or techniques') {
+      # apply boundaries
+      req(input$boundaries_file_removed)
+      cell_boundaries = read.csv(input$boundaries_file_removed$datapath)
       img_inside = apply_boundary(img, cell_boundaries)
       img_resized = mask_resize(img, img_inside, 224, 224)
     } else {
@@ -488,6 +607,45 @@ server <- function(input, output) {
     return(NULL)
   }
   
+  rf_prediction_removed <- function(img_technique) {
+    
+    img = convert_img(data_removed(), img_technique)
+    if (img_technique == "With boundary") {
+      loaded_model = readRDS("RF Models (Removed)/rf_boundaries_features_removed.rds")
+    } else if (img_technique == "With Power Law and boundary") {
+      loaded_model = readRDS("RF Models (Removed)/rf_power_features_removed.rds")
+    } else if (img_technique == "With Thresholding and boundary") {
+      loaded_model = readRDS("RF Models (Removed)/rf_thresholding_features_removed.rds")
+    } else if (img_technique == "With Opening and boundary") {
+      loaded_model = readRDS("RF Models (Removed)/rf_opening_features_removed.rds")
+    } else if (img_technique == "With Denoise and boundary") {
+      loaded_model = readRDS("RF Models (Removed)/rf_denoise_features_removed.rds")
+    } else if (img_technique == "With everything") {
+      # NOTE: NOT YET CHOSEN
+      loaded_model = readRDS("RF Models (Merged)/rf_boundaries_features_removed.rds")
+    } else {
+      # no boundaries
+      return("NA - Random Forest cannot compute this.")
+    }
+    # ensure that boundaries csv is uploaded before computing
+    if (!(is.null(input$boundaries_file_removed))) {
+      cell_boundaries = read.csv(input$boundaries_file_removed$datapath)
+      
+      # note: ASSUMPTION THAT THE INPUT IMAGE IS NAMED cell_<ID>.png
+      cell_id = gsub(".*cell_|.png", "", input$filename_removed$name)
+      img_inside = apply_boundary(img, cell_boundaries)
+      img_mask = mask_resize(img, img_inside, 224, 224)
+      
+      xf = computeFeatures(img_inside, img, expandRef = NULL)
+      rownames(xf) <- cell_id
+      res = predict(loaded_model, xf)
+      predicted_class = gsub(".*cluster_|", "", res)
+      
+      return(predicted_class)
+    }
+    return(NULL)
+  }
+  
   # displays prediction text
   output$prediction <- renderText({
     # waits for technique, model
@@ -497,12 +655,40 @@ server <- function(input, output) {
     if (input$img_model == 'CNN') {
       if (!(is.null(input$boundaries_file)) && input$img_technique != 'No boundaries or techniques') {
         predicted_class = cnn_prediction(input$img_technique)
+      } else if ((is.null(input$boundaries_file)) && input$img_technique == 'No boundaries or techniques') {
+        predicted_class = cnn_prediction(input$img_technique)
       }
-      predicted_class = cnn_prediction(input$img_technique)
+      paste0("Please upload a CSV file containing the cell boundaries.")
+      
     } else {
       # random forest
       predicted_class = rf_prediction(input$img_technique)
-      #predicted_class = "hello i need help with rf lmao"
+    }
+    
+    if (is.null(predicted_class)) {
+      paste0("Please choose a model and technique. If you have chosen techniques with boundaries, please include the CSV file containing the boundaries.")
+    } else {
+      paste0("The predicted cluster is: ", predicted_class)
+    }
+    
+  })
+  
+  output$prediction_removed <- renderText({
+    # waits for technique, model
+    req(input$img_technique_removed, input$img_model_removed)
+    predicted_class = NULL
+    
+    if (input$img_model_removed == 'CNN') {
+      if (!(is.null(input$boundaries_file_removed)) && input$img_technique_removed != 'No boundaries or techniques') {
+        predicted_class = cnn_prediction(input$img_technique_removed)
+      } else if ((is.null(input$boundaries_file_removed)) && input$img_technique_removed == 'No boundaries or techniques') {
+        predicted_class = cnn_prediction(input$img_technique_removed)
+      }
+      paste0("Please upload a CSV file containing the cell boundaries.")
+      
+    } else {
+      # random forest
+      predicted_class = rf_prediction(input$img_technique_removed)
     }
     
     if (is.null(predicted_class)) {
@@ -519,6 +705,12 @@ server <- function(input, output) {
     plot(data(), all=FALSE)
   })
   
+  # displays input image for removed cluster
+  output$og_image_removed <- renderPlot({
+    req(data_removed())
+    plot(data_removed(), all=FALSE)
+  })
+  
   # displays the preprocessed image
   output$preprocessed_img <- renderPlot({
     req(input$filename, input$img_technique, data())
@@ -532,10 +724,20 @@ server <- function(input, output) {
     }
   })
   
-  output$noisy_image <- renderPlot({
-    req(data())
-    plot(data()*5, all=FALSE)
+  # displays the preprocessed image
+  output$preprocessed_img_removed <- renderPlot({
+    req(input$filename_removed, input$img_technique_removed, data_removed())
+    if (input$img_technique_removed != 'No boundaries or techniques' && !(is.null(input$boundaries_file_removed))) {
+      img = convert_img(data_removed(), input$img_technique_removed)
+      # apply boundaries
+      cell_boundaries = read.csv(input$boundaries_file_removed$datapath)
+      img_resized = apply_boundary(img, cell_boundaries)
+      img_resized = mask_resize(img, img_resized)
+      plot(img_resized, all=FALSE)
+    }
   })
+  
+  # PERFORMANCE TAB ------------------------------------------
   
   output$cnn_archi<- renderImage({
     
