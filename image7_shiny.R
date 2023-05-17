@@ -680,15 +680,15 @@ server <- function(input, output) {
     
     if (input$img_model_removed == 'CNN') {
       if (!(is.null(input$boundaries_file_removed)) && input$img_technique_removed != 'No boundaries or techniques') {
-        predicted_class = cnn_prediction(input$img_technique_removed)
+        predicted_class = cnn_prediction_removed(input$img_technique_removed)
       } else if ((is.null(input$boundaries_file_removed)) && input$img_technique_removed == 'No boundaries or techniques') {
-        predicted_class = cnn_prediction(input$img_technique_removed)
+        predicted_class = cnn_prediction_removed(input$img_technique_removed)
       }
       paste0("Please upload a CSV file containing the cell boundaries.")
       
     } else {
       # random forest
-      predicted_class = rf_prediction(input$img_technique_removed)
+      predicted_class = rf_prediction_removed(input$img_technique_removed)
     }
     
     if (is.null(predicted_class)) {
