@@ -261,7 +261,7 @@ ui <- fluidPage(
     ),
     #Third tab
     tabPanel(
-      "Performance & Interpretability",
+      "Performance",
       # Sidebar layout with input and output definitions ----
       fixedRow(
         column(12,
@@ -278,11 +278,6 @@ ui <- fluidPage(
                                         h4(strong("Robustness")),
                                         p("Insert text here")
                         )),
-                        fluidRow(column(12,
-                                        h4(strong("Interpretability")),
-                                        imageOutput(outputId = 'cnn_archi'),
-                                        p("Insert text here")
-                        ))
                         
                  ),
                  column(6,
@@ -296,7 +291,29 @@ ui <- fluidPage(
                         fluidRow(column(12,
                                         h4(strong("Robustness")),
                                         p("Insert text here")
-                        )),
+                        ))
+                 )
+               )
+        )
+      )
+    ),
+    tabPanel(
+      "Interpretability",
+      # Sidebar layout with input and output definitions ----
+      fixedRow(
+        column(12,
+               fixedRow(
+                 column(6,
+                        h3(strong(("CNN (AlexNet)"))),
+                        fluidRow(column(12,
+                                        h4(strong("Interpretability")),
+                                        imageOutput(outputId = 'cnn_archi'),
+                                        p("Insert text here")
+                        ))
+                        
+                 ),
+                 column(6,
+                        h3(strong("Random Forest")),
                         fluidRow(column(12,
                                         h4(strong("Interpretability")),
                                         p("Insert text here")
