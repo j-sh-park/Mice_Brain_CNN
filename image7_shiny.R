@@ -45,11 +45,7 @@ convert_img <- function(img, img_technique){
     return(opening_filter(img))
   } else if (img_technique == "With Denoise and boundary") {
     return(denoise_filter(img))
-  } else if (img_technique == "With everything"){
-    #NOTE: we haven't decide what's the best filter(maybe we don't need this?)
-    return(img)
-  }
-  # no boundaries / boundaries
+  } 
   return(img)
   
 }
@@ -146,8 +142,7 @@ ui <- fluidPage(
               "With Power Law and boundary", 
               "With Thresholding and boundary", 
               "With Opening and boundary", 
-              "With Denoise and boundary", 
-              "With everything"
+              "With Denoise and boundary"
             )
           ),
           fileInput(
@@ -214,8 +209,7 @@ ui <- fluidPage(
               "With Power Law and boundary", 
               "With Thresholding and boundary", 
               "With Opening and boundary", 
-              "With Denoise and boundary", 
-              "With everything"
+              "With Denoise and boundary"
             )
           ),
           fileInput(
@@ -352,8 +346,6 @@ server <- function(input, output) {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_opening_weights.hdf5')
     } else if (input$img_technique == "With Denoise and boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_merged_weights.h5')
-    } else if (input$img_technique == "With everything") {
-      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     } else {
       # no boundaries
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_raw_weights.hdf5')
@@ -373,8 +365,6 @@ server <- function(input, output) {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_opening_removed_weights.h5')
     } else if (input$img_technique_removed == "With Denoise and boundary") {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_removed_weights.h5')
-    } else if (input$img_technique_removed == "With everything") {
-      loaded_model = load_model_weights_hdf5(model, 'alexnet_merged_boundaries_weights.h5')
     } else {
       # no boundaries
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_raw_weights.hdf5')
@@ -452,9 +442,7 @@ server <- function(input, output) {
           accuracy = "7.58%"
         } else if (input$img_technique == "With Denoise and boundary") {
           accuracy = "6.83%"
-        } else if (input$img_technique == "With everything") {
-          accuracy = "-"
-        }
+        } 
       } else if (input$img_technique == 'No boundaries or techniques'){
         # no boundaries
         accuracy = "7.58%"
@@ -471,8 +459,6 @@ server <- function(input, output) {
         accuracy = "83.1%"
       } else if (input$img_technique == "With Denoise and boundary") {
         accuracy = "83.2%"
-      } else if (input$img_technique == "With everything") {
-        accuracy = "-"
       } else {
         # no boundaries
         accuracy = "NA"
@@ -501,9 +487,7 @@ server <- function(input, output) {
           accuracy = "6.21%"
         } else if (input$img_technique_removed == "With Denoise and boundary") {
           accuracy = "6.09%"
-        } else if (input$img_technique_removed == "With everything") {
-          accuracy = "-"
-        }
+        } 
       } else if (input$img_technique_removed == 'No boundaries or techniques'){
         # no boundaries
         accuracy = "4.97%"
@@ -520,8 +504,6 @@ server <- function(input, output) {
         accuracy = "83.9%"
       } else if (input$img_technique_removed == "With Denoise and boundary") {
         accuracy = "83.1%"
-      } else if (input$img_technique_removed == "With everything") {
-        accuracy = "-"
       } else {
         # no boundaries
         accuracy = "NA"
@@ -598,9 +580,6 @@ server <- function(input, output) {
       loaded_model = readRDS("RF Models (Merged)/rf_opening_features.rds")
     } else if (img_technique == "With Denoise and boundary") {
       loaded_model = readRDS("RF Models (Merged)/rf_denoise_features.rds")
-    } else if (img_technique == "With everything") {
-      # NOTE: NOT YET CHOSEN
-      loaded_model = readRDS("RF Models (Merged)/rf_boundaries_features.rds")
     } else {
       # no boundaries
       return("NA - Random Forest cannot compute this.")
@@ -637,9 +616,6 @@ server <- function(input, output) {
       loaded_model = readRDS("RF Models (Removed)/rf_opening_features_removed.rds")
     } else if (img_technique == "With Denoise and boundary") {
       loaded_model = readRDS("RF Models (Removed)/rf_denoise_features_removed.rds")
-    } else if (img_technique == "With everything") {
-      # NOTE: NOT YET CHOSEN
-      loaded_model = readRDS("RF Models (Merged)/rf_boundaries_features_removed.rds")
     } else {
       # no boundaries
       return("NA - Random Forest cannot compute this.")
