@@ -116,8 +116,24 @@ ui <- fluidPage(
     tabPanel (
       "Introduction",
       h2(strong("Image Classification via Deep Learning and Random Forest")),
-      h3("Investigation of the impact of pre-processing techniques on the training dataset and its effect on the accuracy of deep learning and machine learning models"),
-      p("Insert text here")
+      h3("Introduction"),
+      p("In this app, users can upload an image of a mice brain cell and its accompanying boundaries file and assess the performance and interpretability of a number of pre-trained deep neural network and random forest classifiers."),
+      p('Those with a more data science interest will be able to use our learning tool to understand how these data wrangling techniques impact the convolutional neural network and classical machine learning models.'),
+      p('For biologists and geneticists, they can use our learning tool to determine how data wrangling techniques affect the accurate classification of mice brain cells.'),
+      h3('About the Data'),
+      h4('Origins'),
+      p('10xgenomics originally obtained a 10µm section from a C57BL/6 mouse from Charles River Laboratories. The tissue was prepared following the demonstrated protocols Xenium In Situ for Fresh Frozen Tissues - Tissue Preparation Guide (CG000579) and Xenium In Situ for Fresh Frozen Tissues – Fixation & Permeabilization (CG000581). A 1,000 image subset was randomly sampled from a larger dataset containing 36,602 images that were clustered base on gene expression using the Xenium In Situ platform.'),
+      h4('Clustering Alterations'),
+      p('Originally, the dataset came clustered into 28 clusters. In this project, we experimented with two techniques of cluster alterations. In the first technique (Merge Cluster tab), we merged clusters based on their UMAP projections. For the second technique (Remove Cluster tab), we simply removed clusters that contained too few images.'),
+      h4('Data Augmentation'),
+      p('In addition to removing clusters with too few images, we also augmented images such that there would be an equal number of images in each cluster. To do this, we performed a number of small random changes to the images (rotations and translations) before saving them to the same cluster.'),
+      h4('Image Preprocessing Techniques'),
+      p('In addition to the two clustering alteration techniques, we also performed four image preprocessing techniques: Power Law, Thresholding, Opening and Denoise. This gives us a total of 8 datasets: 4 image preprocessing techniques * 2 clustering alterations.'),
+      h3('Model Selection'),
+      h4('AlexNet (Deep Learning)'),
+      p('We choose AlexNet because it is easy to train whilst maintaining relatively good top-5 accuracy. It features less computational demand due to the small amount of layers compared to its competitors. We also thought that its simplicity would allow us to see the impact of preprocessing better. Various tests were conducted to fine tune parameters such as learning rate and epoch size.'),
+      h4('Random Forest (Classical Machine Learning)'),
+      p('We selected Random Forest as it efficiently handles large datasets. We use our random forests on extracted feature data instead of pixel data due to computational time and higher accuracy.')
     ),
     
     # 2nd tab
