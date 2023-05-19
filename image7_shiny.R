@@ -574,7 +574,7 @@ server <- function(input, output) {
     x[1,,,1] <- img_resized@.Data
     input_shape = dim(x)[2:4]
     model = create_model(input_shape = input_shape)
-    loaded_model = add_model_weights_merged(model)
+    loaded_model = add_model_weights_removed(model)
     
     res = loaded_model %>% predict(x)
     predicted_class = apply(res, 1, which.max)
