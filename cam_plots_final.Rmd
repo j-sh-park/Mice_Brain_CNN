@@ -1,0 +1,436 @@
+---
+title: "cam_plots_example"
+output: html_document
+date: "2023-05-19"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(SpatialPack)
+```
+
+
+```{r}
+# Load the image and preprocess it - same image for example 
+
+img <- readImage("../data_removed/data_removed/data_denoise_removed/data_denoise_removed/Biotechnology/data_processed/cell_images/cluster_2/cell_491.png")
+
+EBImage::display(img, method = "raster")
+
+img_resized = resize(img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+```
+
+
+```{r}
+png(file="cam_plots/input_example.png",
+width=600, height=350)
+EBImage::display(img, method = "raster")
+dev.off
+```
+
+
+
+```{r}
+# create model architecture with no weights
+create_model <- function(learning_rate = 0.000000000001, input_shape=c(224, 224, 1), cluster_number=17) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    
+    # 1st layer
+    layer_conv_2d(filters = 96, kernel_size = c(11,11), strides = c(4,4), activation = 'relu', input_shape = input_shape, padding="same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 2nd layer
+    layer_conv_2d(filters = 256, kernel_size = c(5,5), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 3rd layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    
+    # 4th layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>%
+    layer_batch_normalization() %>%
+    
+    # 5th layer
+    layer_conv_2d(filters = 256, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 6th layer
+    layer_flatten() %>% 
+    layer_dense(units = 4096, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    
+    # 7th layer
+    layer_dense(units = 4096, activation = 'relu') %>%
+    layer_dropout(rate = 0.5) %>%
+    
+    # 8th layer
+    layer_dense(units = cluster_number, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "categorical_crossentropy",
+    optimizer = optimizer_sgd(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+
+```
+
+
+```{r}
+model = create_model(input_shape = input_shape)
+
+```
+
+
+
+Denoise 
+
+```{r}
+# read in the saved model 
+loaded_model_cam = load_model_hdf5("cam_denose_removed_cnn")
+summary(loaded_model_cam)
+```
+
+
+```{r}
+# image stuff 
+denoise_img = denoise(as.matrix(img), type="enhanced")
+
+EBImage::display(denoise_img, method = "raster")
+
+img_resized = resize(denoise_img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+```
+
+```{r}
+png(file="cam_plots/denoise_img.png",
+width=600, height=350)
+EBImage::display(denoise_img, method = "raster")
+dev.off
+```
+
+```{r}
+layer_outputs <- lapply(loaded_model_cam$layers[1:8], function(layer) layer$output)
+activation_model <- keras_model(inputs = loaded_model_cam$input, outputs = layer_outputs)
+```
+
+```{r}
+activations <- activation_model %>% predict(x_img)
+```
+
+```{r}
+first_layer_activation <- activations[[1]]
+dim(first_layer_activation)
+last_layer_activation <- activations[[8]]
+dim(last_layer_activation)
+```
+
+```{r}
+plot_channel <- function(channel) {
+  rotate <- function(x) t(apply(x, 2, rev))
+  image(rotate(channel), axes = FALSE, asp = 1,
+        col = terrain.colors(12))
+}
+```
+
+
+```{r}
+# save as png image in specific directory with 600*350 resolution
+png(file="cam_plots/denoise_first_layer.png",
+width=600, height=350)
+plot_channel(first_layer_activation[1,,,96])
+dev.off
+
+```
+
+```{r}
+png(file="cam_plots/denoise_last_layer.png",
+width=600, height=350)
+plot_channel(last_layer_activation[1,,,250])
+dev.off
+```
+
+
+
+Thresholding 
+
+```{r}
+# read in the saved model 
+loaded_model_cam = load_model_weights_hdf5(model, 'models/cnn_models/cnn_models/alexnet_merged_17_augmented_threshold_boundaries.h5')
+```
+
+
+```{r}
+summary(loaded_model_cam)
+```
+
+
+
+```{r}
+# image stuff 
+
+
+thresholding_img = thresh(img, w=9, h=8, offset=0.05)
+thresholding_img = fillHull(opening(thresholding_img, makeBrush(5, shape='diamond')))
+
+EBImage::display(thresholding_img, method = "raster")
+
+img_resized = resize(thresholding_img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+```
+```{r}
+png(file="cam_plots/thresholding_img.png",
+width=600, height=350)
+EBImage::display(thresholding_img, method = "raster")
+dev.off
+```
+
+
+
+```{r}
+layer_outputs <- lapply(loaded_model_cam$layers[1:8], function(layer) layer$output)
+activation_model <- keras_model(inputs = loaded_model_cam$input, outputs = layer_outputs)
+```
+
+```{r}
+activations <- activation_model %>% predict(x_img)
+```
+
+```{r}
+first_layer_activation <- activations[[1]]
+dim(first_layer_activation)
+last_layer_activation <- activations[[8]]
+dim(last_layer_activation)
+```
+
+```{r}
+plot_channel <- function(channel) {
+  rotate <- function(x) t(apply(x, 2, rev))
+  image(rotate(channel), axes = FALSE, asp = 1,
+        col = terrain.colors(12))
+}
+```
+
+
+```{r}
+# save as png image in specific directory with 600*350 resolution
+png(file="cam_plots/threshold_first_layer.png",
+width=600, height=350)
+plot_channel(first_layer_activation[1,,,96])
+dev.off
+
+```
+
+```{r}
+png(file="cam_plots/threshold_last_layer.png",
+width=600, height=350)
+plot_channel(last_layer_activation[1,,,250])
+dev.off
+```
+
+
+
+Opening 
+
+```{r}
+# read in the saved model 
+loaded_model_cam = load_model_weights_hdf5(model, 'models/cnn_models/cnn_models/alexnet_merged_opening_weights.hdf5')
+```
+
+
+```{r}
+summary(loaded_model_cam)
+```
+
+
+```{r}
+
+
+opening_img = opening(img, makeBrush(5, shape='diamond'))
+
+EBImage::display(opening_img, method = "raster")
+
+img_resized = resize(opening_img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+
+```
+
+
+```{r}
+png(file="cam_plots/opening_img.png",
+width=600, height=350)
+EBImage::display(opening_img, method = "raster")
+dev.off
+
+```
+
+
+```{r}
+layer_outputs <- lapply(loaded_model_cam$layers[1:8], function(layer) layer$output)
+activation_model <- keras_model(inputs = loaded_model_cam$input, outputs = layer_outputs)
+```
+
+```{r}
+activations <- activation_model %>% predict(x_img)
+```
+
+```{r}
+first_layer_activation <- activations[[1]]
+dim(first_layer_activation)
+last_layer_activation <- activations[[8]]
+dim(last_layer_activation)
+```
+
+```{r}
+plot_channel <- function(channel) {
+  rotate <- function(x) t(apply(x, 2, rev))
+  image(rotate(channel), axes = FALSE, asp = 1,
+        col = terrain.colors(12))
+}
+```
+
+
+```{r}
+# save as png image in specific directory with 600*350 resolution
+png(file="cam_plots/opening_first_layer.png",
+width=600, height=350)
+plot_channel(first_layer_activation[1,,,96])
+dev.off
+
+```
+
+```{r}
+png(file="cam_plots/opening_last_layer.png",
+width=600, height=350)
+plot_channel(last_layer_activation[1,,,250])
+dev.off
+```
+
+
+
+Power Law 
+
+
+```{r}
+
+power_img = img^2.5
+
+EBImage::display(power_img, method = "raster")
+
+img_resized = resize(power_img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+
+```
+```{r}
+png(file="cam_plots/power_img.png",
+width=600, height=350)
+EBImage::display(power_img, method = "raster")
+dev.off
+
+```
+
+Opening 
+
+```{r}
+# read in the saved model 
+loaded_model_cam = load_model_weights_hdf5(model, 'models/cnn_models/cnn_models/alexnet_merged_17_augmented_power_boundaries.h5')
+```
+
+
+```{r}
+summary(loaded_model_cam)
+```
+
+```{r}
+layer_outputs <- lapply(loaded_model_cam$layers[1:8], function(layer) layer$output)
+activation_model <- keras_model(inputs = loaded_model_cam$input, outputs = layer_outputs)
+```
+
+```{r}
+activations <- activation_model %>% predict(x_img)
+```
+
+```{r}
+first_layer_activation <- activations[[1]]
+dim(first_layer_activation)
+last_layer_activation <- activations[[8]]
+dim(last_layer_activation)
+```
+
+```{r}
+plot_channel <- function(channel) {
+  rotate <- function(x) t(apply(x, 2, rev))
+  image(rotate(channel), axes = FALSE, asp = 1,
+        col = terrain.colors(12))
+}
+```
+
+
+```{r}
+# save as png image in specific directory with 600*350 resolution
+png(file="cam_plots/power_first_layer.png",
+width=600, height=350)
+plot_channel(first_layer_activation[1,,,96])
+dev.off
+
+```
+
+```{r}
+png(file="cam_plots/power_last_layer.png",
+width=600, height=350)
+plot_channel(last_layer_activation[1,,,250])
+dev.off
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
