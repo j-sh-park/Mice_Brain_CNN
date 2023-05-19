@@ -122,7 +122,7 @@ ui <- fluidPage(
       p('For biologists and geneticists, they can use our learning tool to determine how data wrangling techniques affect the accurate classification of mice brain cells.'),
       h3('About the Data'),
       h4('Origins'),
-      p('10xgenomics originally obtained a 10µm section from a C57BL/6 mouse from Charles River Laboratories. The tissue was prepared following the demonstrated protocols Xenium In Situ for Fresh Frozen Tissues - Tissue Preparation Guide (CG000579) and Xenium In Situ for Fresh Frozen Tissues – Fixation & Permeabilization (CG000581). A 1,000 image subset was randomly sampled from a larger dataset containing 36,602 images that were clustered base on gene expression using the Xenium In Situ platform.'),
+      p('10xgenomics originally obtained a 10µm section from a C57BL/6 mouse from Charles River Laboratories. The tissue was prepared following the demonstrated protocols Xenium In Situ for Fresh Frozen Tissues - Tissue Preparation Guide (CG000579) and Xenium In Situ for Fresh Frozen Tissues – Fixation & Permeabilization (CG000581). A 1,000 image subset was randomly sampled from a larger dataset containing 36,602 images that were clustered base on gene expression using the Xenium In Situ platform. (10xGenomics, 2023)'),
       h4('Clustering Alterations'),
       p('Originally, the dataset came clustered into 28 clusters. In this project, we experimented with two techniques of cluster alterations. In the first technique (Merge Cluster tab), we merged clusters based on their UMAP projections. For the second technique (Remove Cluster tab), we simply removed clusters that contained too few images.'),
       h4('Data Augmentation'),
@@ -133,7 +133,9 @@ ui <- fluidPage(
       h4('AlexNet (Deep Learning)'),
       p('We choose AlexNet because it is easy to train whilst maintaining relatively good top-5 accuracy. It features less computational demand due to the small amount of layers compared to its competitors. We also thought that its simplicity would allow us to see the impact of preprocessing better. Various tests were conducted to fine tune parameters such as learning rate and epoch size.'),
       h4('Random Forest (Classical Machine Learning)'),
-      p('We selected Random Forest as it efficiently handles large datasets. We use our random forests on extracted feature data instead of pixel data due to computational time and higher accuracy.')
+      p('We selected Random Forest as it efficiently handles large datasets. We use our random forests on extracted feature data instead of pixel data due to computational time and higher accuracy.'),
+      h4('References'),
+      p('10xGenomics. (2023). Fresh Frozen Mouse Brain for Xenium Explorer Demo. 10xgenomics.com. https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard')
     ),
     
     # 2nd tab
