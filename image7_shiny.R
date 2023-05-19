@@ -45,7 +45,14 @@ convert_img <- function(img, img_technique){
     return(opening_filter(img))
   } else if (img_technique == "With Denoise and boundary") {
     return(denoise_filter(img))
+  } else if (img_technique == "With Thresholding and boundary") {
+    return(thresholding_filter(img))
   } 
+  
+  
+  
+  
+  
   return(img)
   
 }
@@ -312,6 +319,13 @@ ui <- fluidPage(
     tabPanel(
       "Interpretability",
       # Sidebar layout with input and output definitions ----
+      h3(strong("Random Forest")),
+      
+      p("In order to understand exactly how the model makes its predictions, we can implement the use of Activation Heatmaps. This will allow us to interpret the AlexNet model."),
+      h3(strong("CNN Alexnet")),
+      
+      
+      
       fixedRow(
         column(12,
                fixedRow(
@@ -320,7 +334,7 @@ ui <- fluidPage(
                         fluidRow(column(12,
                                         h4(strong("Interpretability")),
                                         imageOutput(outputId = 'cnn_archi'),
-                                        p("Insert text here")
+                                        p("In order to understand exactly how the model makes its predictions, we can implement the use of Activation Heatmaps. This will allow us to interpret the AlexNet model.")
                         ))
                         
                  ),
@@ -328,7 +342,7 @@ ui <- fluidPage(
                         h3(strong("Random Forest")),
                         fluidRow(column(12,
                                         h4(strong("Interpretability")),
-                                        p("Insert text here")
+                                        p("Random Forests are much easier to understand based on the decision trees they produce. As such we consider the interpretability of the neural network model and investigate the changes that the four pre-processing techniques can cause.")
                         ))
                  )
                )
