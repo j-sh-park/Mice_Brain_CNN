@@ -12,7 +12,7 @@ The CNN model used in our project is based on the AlexNet architecture.
 
 * [Getting Started](#start)
     * [Clone Repository](#clone)
-    * [Obtain Models](#models)
+    * [Obtain CNN Models](#models)
     * [RStudio & R](#rstudio)
     * [Install/Check Packages](#packages)
 * [Running & Usage](#run)
@@ -34,7 +34,7 @@ Clone this repository in order to obtain the Random Forest models, Shiny App scr
 git clone https://github.sydney.edu.au/tzar0514/image7-shiny
 ```
 
-### <div id="models">Obtain Models</div>
+### <div id="models">Obtain CNN Models</div>
 
 1. Obtain our CNN models via this <a href="https://drive.google.com/file/d/1WQvHoY686EXpFOr6gDn77dOmZeEZvRUs/view?usp=share_link">link</a> (**WARNING:** This file is approxmately 2.4GB. It may take a few minutes depending on the strength of your network connection.) 
 
@@ -77,6 +77,8 @@ For more information on installation, visit these webpages:
 -  <a href="https://bioconductor.org/packages/release/bioc/vignettes/EBImage/inst/doc/EBImage-introduction.html#1_Getting_started">EBImage Installation Guide</a>
 
 ### <div id="run">Running & Usage</div>
+
+Start a new R Project in RStudio in the same directory as `image7-shiny`. 
 
 Open the file `image7_shiny` in RStudio and click on 'Run App' on the top right.
 
