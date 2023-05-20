@@ -139,7 +139,25 @@ ui <- fluidPage(
       p('For biologists and geneticists, they can use our learning tool to determine how data wrangling techniques affect the accurate classification of mice brain cells.'),
       
       h3(strong('User Guide')),
-      p('The 2nd and 3rd tabs (Merge Cluster and Remove Cluster) allow you to use our pre-trained models to get a cluster prediction for your image. After navigating either tab, upload an image and its boundary file, before selecting a preprocessing technique and model.'),
+      
+      p('The 2nd and 3rd tabs (Merge Cluster and Remove Cluster) allow you to use our pre-trained models to get a cluster prediction for your image. After navigating either tab, upload an image and its boundary file, before selecting a preprocessing technique and model. Below is a step-by-step guide:'),
+      br(),
+      tags$div(
+        tags$ul(
+          "1. Upload a PNG image of a cell.",
+          tags$ul(tags$li(HTML("<b>IMPORTANT:</b> It should be named in this specific formart: <code>cell_ID.png</code> where <code>ID</code> is any numeric value."))),
+          tags$ul(tags$li("An image will appear on the right. That is your input image."))
+        ),
+        tags$ul(
+          "2. Select the preprocessing technique of your choice.",
+          tags$ul(tags$li("Another image will appear on the right beneath the text. This is your input image with the chosen preprocessing technique applied."))
+        ),
+        tags$ul(
+          "3. If you have chosen a preprocessing technique with boundaries, upload the CSV file containing the x and y vertices of the region of interest in your image."),
+        tags$ul("4. Select between Random Forest and CNN as your model to predict the image with.")
+      ),
+      br(),
+      
       p('The 4th and 5th tabs (Performance and Interpretability) display visuals and metrics with short explanations about both our models'),
       
       h3(strong('About the Data')),
