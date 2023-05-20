@@ -7,9 +7,10 @@ library(SpatialPack)
 library(pracma)
 library(randomForest)
 library(png)
+library(BiocGenerics)
 
-# NOTE: Need an 'images' and 'cnn_models' folder in your working directory for user input & cnn models
-addResourcePath(prefix = "imgResources", directoryPath = "./images")
+# NOTE: Need an cnn_models' folder in your working directory for cnn models
+#addResourcePath(prefix = "imgResources", directoryPath = "./images")
 addResourcePath(prefix = "cnn_models", directoryPath = "./cnn_models")
 
 addResourcePath(prefix = "rf_models_merged", directoryPath = "./RF Models (Merged)")
@@ -61,15 +62,9 @@ convert_img <- function(img, img_technique){
   } else if (img_technique == "With Thresholding and boundary") {
     return(thresholding_filter(img))
   } 
-  
-  
-  
-  
-  
+  # no boundaries / boundaries
   return(img)
-  
 }
-#```
 
 
 # create model architecture with no weights
@@ -203,14 +198,9 @@ ui <- fluidPage(
         # Main panel for displaying outputs ----
         mainPanel(
           fluidRow(
-            # Output: Histogram ----
-            # column(width = 6, plotlyOutput("plot1")),
-            # column(width = 6, plotlyOutput("plot2"))
-            
             column(6, offset = 3, 
                    fluidRow(
                      column(2, plotOutput(outputId ='og_image', width='250px', height='250px'))
-                     #column(4, "Original Image")
                    )
             )
           ),
@@ -221,25 +211,22 @@ ui <- fluidPage(
           textOutput(outputId = "chosen_technique"),
           br(),
           fluidRow(
-            # Output: Histogram ----
-            # column(width = 6, plotlyOutput("plot1")),
-            # column(width = 6, plotlyOutput("plot2"))
             column(6, offset = 3, plotOutput(outputId ='preprocessed_img', width='250px', height='250px'))
           ),
           br(),
           br(),
           p("Activation map corresponding to the first layer of AlexNet"),
           fluidRow(
-
+            
             column(6, offset = 3,
                    
                    
                    plotOutput(
-              outputId ='heatmap_first_layer',
-              
-              
-              
-              ))
+                     outputId ='heatmap_first_layer',
+                     
+                     
+                     
+                   ))
           ),
           p("Activation map corresponding to the last layer of AlexNet"),
           fluidRow(
@@ -325,14 +312,15 @@ ui <- fluidPage(
       # Sidebar layout with input and output definitions ----
       fixedRow(
         column(12,
+               h3(strong("Overall Comparison")),
+               p("Random forest on image features was significantly more accurate than our CNN model on all data. The key notedown was that our Random Forest model was trained on image features rather than the images themselves, which can explain the higher accuracy (10x the CNN). During testing, we found that RF's on pixels was only slightly better (11% accuracy)."),
                fixedRow(
                  column(6,
                         h3(strong(("CNN (AlexNet)"))),
                         fluidRow(column(12,
                                         h4(strong("Accuracy")),
                                         plotlyOutput(outputId = "cnn_acc_comparison"),
-                                        p("Insert text here")
-                                        
+                                        p("Overall, our CNN's performed quite poorly with our highest performing model running on the Power Law images with 8.2%. On the data that we removed cells from the merged dataset, our CNN ran best on the images that underwent the opening process, achieving 6.2% accuracy.")
                         )), 
                         fluidRow(column(12,
                                         h4(strong("Robustness")),
@@ -342,15 +330,19 @@ ui <- fluidPage(
                  ),
                  column(6,
                         h3(strong("Random Forest")),
+                        p("All Random Forest models underwent 5-fold cross validation with 5 repeats."),
                         fluidRow(column(12,
-                                        h4(strong("Accuracy")),
+                                        h4(strong("Accuracy (Merged data)")),
                                         plotlyOutput(outputId = "rf_boxplot"),
-                                        
-                                        p("Insert text here")
+                                        p("Power law achieved the highest overall accuracy across the five folds, with denoise and thresholding having 2nd highest and highest accuracy in one repeat of our cross-fold validation respectively. Opening and raw images with boundaries performed the exact same interestingly."),
+                                        h4(strong("Robustness"))
                         )), 
                         fluidRow(column(12,
-                                        h4(strong("Robustness")),
-                                        p("Insert text here")
+                                        h4(strong("Accuracy (Removed data)")),
+                                        plotlyOutput(outputId = "rf_boxplot_removed"),
+                                        p("Power Law once again had highest overall accuracy, with opening performing the worst. Denoise also performed strongly."),
+                                        h4(strong("Robustness"))
+                                        
                         ))
                  )
                )
@@ -374,8 +366,8 @@ Let us consider an example:
 "),
       p("An input image was chosen and the following preprocessing techniques applied - Opening, Thresholding , Power Law, Denoise"),
       
-     
-    
+      
+      
       fluidRow(
         column(12,
                strong("Denoise"),
@@ -384,12 +376,12 @@ Let us consider an example:
                         "Input Image", imageOutput(outputId = 'denoise_img')),
                  column(width = 4,
                         "First Layer Map", imageOutput(outputId = 'denoise_first_layer')),
+                 
+                 column(width = 4,
+                        "Last Layer Map",imageOutput(outputId = 'denoise_last_layer')),
+               )
                
-               column(width = 4,
-                      "Last Layer Map",imageOutput(outputId = 'denoise_last_layer')),
-        )
-        
-      )),
+        )),
       
       
       fluidRow(
@@ -408,7 +400,7 @@ Let us consider an example:
         )),
       
       
-
+      
       
       
       fluidRow(
@@ -425,7 +417,7 @@ Let us consider an example:
                )
                
         )),
-
+      
       
       fluidRow(
         column(12,
@@ -451,7 +443,7 @@ Let us consider an example:
       
       
       
-    
+      
     )
   )
 )
@@ -708,11 +700,11 @@ server <- function(input, output) {
     input_shape = dim(x)[2:4]
     model = create_model(input_shape = input_shape)
     model = add_model_weights_removed(model)
-
+    
     loaded_model = model[[1]]
     activation_model = model[[2]]
     
-
+    
     activations <- activation_model %>% predict(x)
     
     res = loaded_model %>% predict(x)
@@ -858,7 +850,7 @@ server <- function(input, output) {
     
     print("yo")
     
-   
+    
   })
   
   # displays heatmap image - first layer
@@ -875,13 +867,15 @@ server <- function(input, output) {
   # displays input image
   output$og_image <- renderPlot({
     req(data())
-    plot(data(), all=FALSE)
+    img = resize(data(), 50, 50)
+    plot(img, all=FALSE)
   })
   
   # displays input image for removed cluster
   output$og_image_removed <- renderPlot({
     req(data_removed())
-    plot(data_removed(), all=FALSE)
+    img = resize(data_removed(), 50, 50)
+    plot(img, all=FALSE)
   })
   
   # displays the preprocessed image
@@ -998,9 +992,6 @@ server <- function(input, output) {
   }, deleteFile = F)
   
   
-  
-  
-  
   output$cnn_acc_comparison <- renderPlotly({
     cnn_model_technique <-  c("Raw Image", "With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
     accuracy <- c(0.0757764, 0.074, 0.06956522, 0.08198758, 0.0757764, 0.06832298, 0.04968944, 0.05590062, 0.06335404, 0.0621118, 0.0621118, 0.0608696)
@@ -1009,7 +1000,8 @@ server <- function(input, output) {
     cnn_data <- data.frame(cnn_model_technique, accuracy, data_type)
     p3 <- ggplot(data = cnn_data, aes(x = cnn_model_technique, y = accuracy, fill = data_type)) + 
       geom_bar(stat = 'identity', position = position_dodge()) + 
-      labs(x = "Neural Network Model", y = "Accuracy", title = "Accuracies of CNN Deep Learning Models\non Image Preprocessing Techniques (Merged)", fill = "CNN Model")
+      labs(x = "Neural Network Model", y = "Accuracy", title = "Accuracies of CNN Deep Learning Models\non Image Preprocessing Techniques (Merged)", fill = "CNN Model") + 
+      theme(axis.text.x = element_text(angle = 45))
     
     ggplotly(p3)
   })
@@ -1024,35 +1016,62 @@ server <- function(input, output) {
       geom_bar(stat = 'identity', position = position_dodge()) + 
       ggtitle("Comparison of Random Forest Machine Learning Models\nby their Image Preprocessing Technique") + 
       xlab("Random Forest Model") + 
-      ylab("Accuracy")
+      ylab("Accuracy") + 
+      theme(axis.text.x = element_text(angle = 45))
     
     ggplotly(p)
   })
   
   output$rf_boxplot <- renderPlotly({
-    cv_acc_rff_bound = c(0.8152941, 0.7917647, 0.8376471,  0.8000000, 0.8000000)
-    cv_acc_rff_denoise = c(0.7952941, 0.8470588, 0.8329412,  0.8141176, 0.7858824)
-    cv_acc_rff_opening = c(0.8152941, 0.7917647, 0.8376471,  0.8000000, 0.8000000)
-    
-    cv_acc_rff_power = c(0.7988235, 0.8200000, 0.8317647,  0.8411765, 0.8117647)
-    
-    cv_acc_rff_thresh = c(0.8070588, 0.8176471, 0.7929412,  0.8082353, 0.8364706)
-    barplot_df = data.frame(accuracy = c(cv_acc_rff_bound,
-                                         cv_acc_rff_denoise, 
-                                         cv_acc_rff_opening,
-                                         cv_acc_rff_power,
-                                         cv_acc_rff_thresh),
-                            model = c(rep("Boundary", length(cv_acc_rff_bound)),
-                                      rep("Denoise", length(cv_acc_rff_denoise)),
-                                      rep("Opening", length(cv_acc_rff_opening)),
-                                      rep("Power Law", length(cv_acc_rff_power)),
-                                      rep("Thresholding", length(cv_acc_rff_thresh))))
+    cv_acc_rff_all_bound = c(0.8141176, 0.8152941, 0.8070588,  0.8101176, 0.8089412)
+    cv_acc_rff_all_denoise = c(0.8197647, 0.8247059, 0.8169412, 0.8171765, 0.8150588)
+    cv_acc_rff_all_opening = c(0.8141176, 0.8152941, 0.8070588, 0.8101176, 0.8089412)
+    cv_acc_rff_all_power = c(0.8223529, 0.8178824, 0.8190588, 0.8218824, 0.8207059)
+    cv_acc_rff_all_thresh = c(0.8110588, 0.8284706, 0.8068235, 0.8065882, 0.8124706)
+    barplot_df = data.frame(accuracy = c(cv_acc_rff_all_bound,
+                                         cv_acc_rff_all_denoise, 
+                                         cv_acc_rff_all_opening,
+                                         cv_acc_rff_all_power,
+                                         cv_acc_rff_all_thresh),
+                            model = c(rep("Boundary", length(cv_acc_rff_all_bound)),
+                                      rep("Denoise", length(cv_acc_rff_all_denoise)),
+                                      rep("Opening", length(cv_acc_rff_all_opening)),
+                                      rep("Power Law", length(cv_acc_rff_all_power)),
+                                      rep("Thresholding", length(cv_acc_rff_all_thresh))))
     
     p2 <- ggplot(data = barplot_df, aes(x = model, y = accuracy, fill = model)) + 
       geom_boxplot() + 
-      labs(x = "Random Forest Model", y = "5-fold CV Accuracy", title = "Distribution of 5-fold CV accuracies\nfor Random Forest Models on Image Preprocessing Techniques (Merged)", fill = "RF Model")
+      geom_jitter(size = 1) + 
+      labs(x = "Random Forest Model", y = "5-fold CV Accuracy", title = "Distribution of 5-fold CV accuracies\nfor Random Forest Models on the merged image dataset", fill = "Dataset") + 
+      theme(axis.text.x = element_text(angle = 45))
     
     ggplotly(p2)
+  })
+  
+  output$rf_boxplot_removed <- renderPlotly({
+    cv_acc_rff_all_boundr <- c(0.8322353, 0.8397647, 0.8421176, 0.8440000, 0.8388235)
+    cv_acc_rff_all_denoiser <- c(0.8470588, 0.8458824, 0.8449412, 0.8435294, 0.8489412)
+    cv_acc_rff_all_openingr <- c(0.8381176, 0.8418824, 0.8343529, 0.8392941, 0.8315294)
+    cv_acc_rff_all_threshr <- c(0.8327059, 0.8449412, 0.8369412, 0.8322353, 0.8371765)
+    cv_acc_rff_all_powerr <- c(0.8468235, 0.8494118, 0.8496471, 0.8425882, 0.8428235)
+    barplot_dfr = data.frame(accuracy = c(cv_acc_rff_all_boundr,
+                                          cv_acc_rff_all_denoiser, 
+                                          cv_acc_rff_all_openingr,
+                                          cv_acc_rff_all_powerr,
+                                          cv_acc_rff_all_threshr),
+                             model = c(rep("Boundary", length(cv_acc_rff_all_boundr)),
+                                       rep("Denoise", length(cv_acc_rff_all_denoiser)),
+                                       rep("Opening", length(cv_acc_rff_all_openingr)),
+                                       rep("Power Law", length(cv_acc_rff_all_powerr)),
+                                       rep("Thresholding", length(cv_acc_rff_all_threshr))))
+    
+    p4 <- ggplot(data = barplot_dfr, aes(x = model, y = accuracy, fill = model)) + 
+      geom_boxplot() + 
+      geom_jitter(size = 1) + 
+      labs(x = "Random Forest Model", y = "5-fold CV Accuracy", title = "Distribution of 5-fold CV accuracies\nfor Random Forest Models on the removed image dataset", fill = "Dataset") + 
+      theme(axis.text.x = element_text(angle = 45))
+    
+    ggplotly(p4)
   })
   
 }
