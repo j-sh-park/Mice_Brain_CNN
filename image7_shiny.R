@@ -127,10 +127,12 @@ ui <- fluidPage(
       p("In this app, users can upload an image of a mice brain cell and its accompanying boundaries file and assess the performance and interpretability of a number of pre-trained deep neural network and random forest classifiers."),
       p('Those with a more data science interest will be able to use our learning tool to understand how these data wrangling techniques impact the convolutional neural network and classical machine learning models.'),
       p('For biologists and geneticists, they can use our learning tool to determine how data wrangling techniques affect the accurate classification of mice brain cells.'),
-      h3('User Guide'),
+      
+      h3(strong('User Guide')),
       p('The 2nd and 3rd tabs (Merge Cluster and Remove Cluster) allow you to use our pre-trained models to get a cluster prediction for your image. After navigating either tab, upload an image and its boundary file, before selecting a preprocessing technique and model.'),
       p('The 4th and 5th tabs (Performance and Interpretability) display visuals and metrics with short explanations about both our models'),
-      h3('About the Data'),
+      
+      h3(strong('About the Data')),
       h4('Origins'),
       p('10xgenomics originally obtained a 10µm section from a C57BL/6 mouse from Charles River Laboratories. The tissue was prepared following the demonstrated protocols Xenium In Situ for Fresh Frozen Tissues - Tissue Preparation Guide (CG000579) and Xenium In Situ for Fresh Frozen Tissues – Fixation & Permeabilization (CG000581). A 1,000 image subset was randomly sampled from a larger dataset containing 36,602 images that were clustered base on gene expression using the Xenium In Situ platform. (10xGenomics, 2023)'),
       h4('Clustering Alterations'),
@@ -139,7 +141,7 @@ ui <- fluidPage(
       p('In addition to removing clusters with too few images, we also augmented images such that there would be an equal number of images in each cluster. To do this, we performed a number of small random changes to the images (rotations and translations) before saving them to the same cluster.'),
       h4('Image Preprocessing Techniques'),
       p('In addition to the two clustering alteration techniques, we also performed four image preprocessing techniques: Power Law, Thresholding, Opening and Denoise. This gives us a total of 8 datasets: 4 image preprocessing techniques * 2 clustering alterations.'),
-      h3('Model Selection'),
+      h3(strong('Model Selection')),
       h4('AlexNet (Deep Learning)'),
       p('We choose AlexNet because it is easy to train whilst maintaining relatively good top-5 accuracy. It features less computational demand due to the small amount of layers compared to its competitors. We also thought that its simplicity would allow us to see the impact of preprocessing better. Various tests were conducted to fine tune parameters such as learning rate and epoch size.'),
       h4('Random Forest (Classical Machine Learning)'),
@@ -323,34 +325,97 @@ ui <- fluidPage(
       "Interpretability",
       # Sidebar layout with input and output definitions ----
       h3(strong("Random Forest")),
+      p("Random Forests are much easier to understand based on the decision trees they produce. As such we consider the interpretability of the neural network model and investigate the changes that the four pre-processing techniques can cause."),
       
-      p("In order to understand exactly how the model makes its predictions, we can implement the use of Activation Heatmaps. This will allow us to interpret the AlexNet model."),
       h3(strong("CNN Alexnet")),
+      p("In order to understand exactly how the model makes its predictions, we can implement the use of Activation Heatmaps. This will allow us to interpret the AlexNet model."),
+      p("Activation maps are the output activations for a given filter. Each map corresponds to a particular learning feature or filter in the network. They highlight regions of the input image that are responsive to the corresponding filters. The regions of interest within the map indicate the highest activation values and this is where the model has detected the specific feature associated with that activation map. 
+"),
+      p("To understand activation maps, one must understand the layers of the CNN model. In our example below, we will consider activation maps of the first and the 8th layer of Alexnet."),
+      imageOutput(outputId = 'cnn_archi'),
+      p("The first image that will be shown for each input  is an activation map taken from the first layer of the alexnet model which corresponds to the first convolution layer. This is the main building block of convolutional neural networks and is where the majority of computation occurs. The second image is of the 8th layer of the network which corresponds to a dense layer. This layer is used to classify images based on the output from the convolutional layers. 
+Let us consider an example:
+"),
+      p("An input image was chosen and the following preprocessing techniques applied - Opening, Thresholding , Power Law, Denoise"),
       
-      
-      
-      fixedRow(
+     
+    
+      fluidRow(
         column(12,
-               fixedRow(
-                 column(6,
-                        h3(strong(("CNN (AlexNet)"))),
-                        fluidRow(column(12,
-                                        h4(strong("Interpretability")),
-                                        imageOutput(outputId = 'cnn_archi'),
-                                        p("In order to understand exactly how the model makes its predictions, we can implement the use of Activation Heatmaps. This will allow us to interpret the AlexNet model.")
-                        ))
-                        
-                 ),
-                 column(6,
-                        h3(strong("Random Forest")),
-                        fluidRow(column(12,
-                                        h4(strong("Interpretability")),
-                                        p("Random Forests are much easier to understand based on the decision trees they produce. As such we consider the interpretability of the neural network model and investigate the changes that the four pre-processing techniques can cause.")
-                        ))
-                 )
-               )
+               strong("Denoise"),
+               fluidRow(
+                 column(4,
+                        "Input Image", imageOutput(outputId = 'denoise_img')),
+                 column(width = 4,
+                        "First Layer Map", imageOutput(outputId = 'denoise_first_layer')),
+               
+               column(width = 4,
+                      "Last Layer Map",imageOutput(outputId = 'denoise_last_layer')),
         )
-      )
+        
+      )),
+      
+      
+      fluidRow(
+        column(12,
+               strong("Power"),
+               fluidRow(
+                 column(4,
+                        "Input Image", imageOutput(outputId = 'power_img')),
+                 column(width = 4,
+                        "First Layer Map", imageOutput(outputId = 'power_first_layer')),
+                 
+                 column(width = 4,
+                        "Last Layer Map",imageOutput(outputId = 'power_last_layer')),
+               )
+               
+        )),
+      
+      
+
+      
+      
+      fluidRow(
+        column(12,
+               strong("Thresholding"),
+               fluidRow(
+                 column(4,
+                        "Input Image", imageOutput(outputId = 'thresholding_img')),
+                 column(width = 4,
+                        "First Layer Map", imageOutput(outputId = 'thresholding_first_layer')),
+                 
+                 column(width = 4,
+                        "Last Layer Map",imageOutput(outputId = 'thresholding_last_layer')),
+               )
+               
+        )),
+
+      
+      fluidRow(
+        column(12,
+               strong("Opening"),
+               fluidRow(
+                 column(4,
+                        "Input Image", imageOutput(outputId = 'opening_img')),
+                 column(width = 4,
+                        "First Layer Map", imageOutput(outputId = 'opening_first_layer')),
+                 
+                 column(width = 4,
+                        "Last Layer Map",imageOutput(outputId = 'opening_last_layer')),
+               )
+               
+        )),
+      
+      p(strong("What does this mean?")),
+      p("The model has not “learnt” or “detected” much information from the first layer and first few channels. This remains the case for all of the input images. It is worth noting that denoise and opening both appear to have the same input image and thus the first activation heatmap will also look the same. The thresholded image appears to have detected much more information from the first layer than any of the other images. Perhaps thresholding allows for better information extraction. The power law image also appears to have slightly more detection than denoise and opening. 
+"),
+      p("In the second activation plots, opening and denoise are the same once again, however there appears to be the detection of the main cell image along with the two smaller circles next to it. The shape corresponds to the original input shape for both denoise and opening. This is not the same for power law and thresholding. When comparing the original input image for power law and the second heat activation map, the shape of the activations appears to be similar to the cell input. However, it does not appear aligned. Thresholding an image drastically changes the input image and consequently changes the cells to circular blobs. This appears to be reflected within the second heat activation map, with corresponding large and small blobs."),
+      
+      p("Overall these maps allow us to understand how an input is decomposed into different filters learned by the network. Each layer has multiple channels and each channel encodes relatively independent features. We used the first layer and 96th channel for the first activation plot and the 8th layer and 250th channel for the second activation plot arbitrarily.")
+      
+      
+      
+    
     )
   )
 )
@@ -769,9 +834,92 @@ server <- function(input, output) {
   
   output$cnn_archi<- renderImage({
     
-    list(src = "resources/model_architecture.png", width = "90%")
+    list(src = "resources/model_architecture.png", width = "95%", height = "90%")
     
   }, deleteFile = F)
+  
+  # denoise 
+  output$denoise_first_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/denoise_first_layer.png")
+    
+  }, deleteFile = F)
+  
+  output$denoise_last_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/denoise_last_layer.png")
+    
+  }, deleteFile = F)
+  
+  output$denoise_img<- renderImage({
+    
+    list(src = "resources/cam_plots/denoise_img.png")
+    
+  }, deleteFile = F)
+  
+  # opening 
+  output$opening_img<- renderImage({
+    
+    list(src = "resources/cam_plots/opening_img.png")
+    
+  }, deleteFile = F)
+  
+  output$opening_first_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/opening_first_layer.png")
+    
+  }, deleteFile = F)
+  
+  
+  output$opening_last_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/opening_last_layer.png")
+    
+  }, deleteFile = F)
+  
+  # power 
+  
+  output$power_img<- renderImage({
+    
+    list(src = "resources/cam_plots/power_img.png")
+    
+  }, deleteFile = F)
+  
+  output$power_first_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/power_first_layer.png")
+    
+  }, deleteFile = F)
+  
+  output$power_last_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/power_last_layer.png")
+    
+  }, deleteFile = F)
+  
+  # thresholding 
+  
+  output$thresholding_img<- renderImage({
+    
+    list(src = "resources/cam_plots/thresholding_img.png")
+    
+  }, deleteFile = F)
+  
+  output$thresholding_first_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/threshold_first_layer.png")
+    
+  }, deleteFile = F)
+  
+  output$thresholding_last_layer<- renderImage({
+    
+    list(src = "resources/cam_plots/threshold_last_layer.png")
+    
+  }, deleteFile = F)
+  
+  
+  
+  
   
   output$cnn_acc_comparison <- renderPlotly({
     cnn_model_technique <-  c("Raw Image", "With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
