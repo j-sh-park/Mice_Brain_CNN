@@ -331,10 +331,10 @@ ui <- fluidPage(
                                         h4(strong("Accuracy")),
                                         plotlyOutput(outputId = "cnn_acc_comparison"),
                                         p("Overall, our CNN's performed quite poorly with our highest performing model running on the Power Law images with 8.2%. On the data that we removed cells from the merged dataset, our CNN ran best on the images that underwent the opening process, achieving 6.2% accuracy.")
-                        )), 
+                        )), br(),br(),
                         fluidRow(column(12,
                                         h4(strong("Robustness")),
-                                        p("Insert text here")
+                                        p("Since the acccuracy of the models are very similar, with a maximum differnce of only 0.03, we consider if the models are perhaps very robust. In order to confirm this, we adding random gaussian noise to the test data. We compared the accuracy of the orignial test data and the noise test data and found there to only be a difference of 0.05. BY testing for so many different preprocessing techniques, and using this test, we can confirm that the AlexNet model is very robust to input images. The implications of this is that it can be used for unseen data or noisy data effectively")
                         )),
                         
                  ),
@@ -344,16 +344,17 @@ ui <- fluidPage(
                         fluidRow(column(12,
                                         h4(strong("Accuracy (Merged data)")),
                                         plotlyOutput(outputId = "rf_boxplot"),
-                                        p("Power law achieved the highest overall accuracy across the five folds, with denoise and thresholding having 2nd highest and highest accuracy in one repeat of our cross-fold validation respectively. Opening and raw images with boundaries performed the exact same interestingly."),
-                                        h4(strong("Robustness"))
+                                        p("Power law achieved the highest overall accuracy across the five folds, with denoise and thresholding having 2nd highest and highest accuracy in one repeat of our cross-fold validation respectively. Opening and raw images with boundaries performed the exact same interestingly.")
+                                        
                         )), 
                         fluidRow(column(12,
                                         h4(strong("Accuracy (Removed data)")),
                                         plotlyOutput(outputId = "rf_boxplot_removed"),
-                                        p("Power Law once again had highest overall accuracy, with opening performing the worst. Denoise also performed strongly."),
+                                        p("Power Law once again had highest overall accuracy, with opening performing the worst. Denoise also performed strongly."),br(),br(),
                                         h4(strong("Robustness"))
                                         
-                        ))
+                        )),
+                        p("Due to the generalization ability of random forest models, they will generate many noisy treeswhen it learnd from the data set that has high dimension with many noise features. This is seen in the plots above, where the accuracies are relatively similar despite the varying preprocessed images. It is able to find the effective features despite any noisy input.")
                  )
                )
         )
