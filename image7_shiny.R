@@ -222,7 +222,7 @@ ui <- fluidPage(
                    
                    
                    plotOutput(
-                     outputId ='heatmap_first_layer',
+                     outputId ='heatmap_merged_first',
                      
                      
                      
@@ -302,7 +302,22 @@ ui <- fluidPage(
             # column(width = 6, plotlyOutput("plot1")),
             # column(width = 6, plotlyOutput("plot2"))
             column(6, offset = 3, plotOutput(outputId ='preprocessed_img_removed', width='250px', height='250px'))
-          )
+          ),
+          br(),
+          br(),
+          p("Activation map corresponding to the first layer of AlexNet"),
+          fluidRow(
+            
+            column(6, offset = 3,
+                   
+                   
+                   plotOutput(
+                     outputId ='heatmap_removed_first',
+                     
+                     
+                     
+                   ))
+          ),
         )
       )
     ),
@@ -890,6 +905,105 @@ server <- function(input, output) {
       plot(img_resized, all=FALSE)
     }
   })
+  
+  # displays the heatmaps 
+  output$heatmap_merged_first <- renderPlot({
+    req(input$filename, input$img_technique, data())
+    if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
+      
+      # get the image 
+      
+      img = convert_img(data(), input$img_technique)
+      
+      cell_boundaries = read.csv(input$boundaries_file$datapath)
+      img_resized = apply_boundary(img, cell_boundaries)
+      img_resized = mask_resize(img, img_resized,224,224)
+      
+      #img_resized = resize(img, 224, 224)
+      x_img <- array(dim=c(1, 224, 224, 1))
+      
+      
+      x_img[1,,,1] <- img_resized@.Data
+      
+      input_shape = dim(x_img)[2:4]
+      
+
+      
+      
+      # get the model layers
+      model = create_model(input_shape = input_shape)
+      
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_boundaries_weights.h5')
+      
+      
+      # activation stuff 
+      layer_outputs <- lapply(loaded_model$layers[1:8], function(layer) layer$output)
+      activation_model <- keras_model(inputs = loaded_model$input, outputs = layer_outputs)
+      
+      
+
+      
+      # prediction on image
+      activations <- activation_model %>% predict(x_img)
+      
+      first_layer_activation <- activations[[1]]
+      
+      plot_channel(first_layer_activation[1,,,250])
+      
+      
+    
+    }
+  })
+  
+  # displays the heatmaps - removed 
+  output$heatmap_removed_first <- renderPlot({
+    req(input$filename, input$img_technique, data())
+    if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
+      
+      # get the image 
+      
+      img = convert_img(data(), input$img_technique)
+      
+      img_resized = resize(img, 224, 224)
+      x_img <- array(dim=c(1, 224, 224, 1))
+      
+      
+      x_img[1,,,1] <- img_resized@.Data
+      
+      input_shape = dim(x_img)[2:4]
+      
+      
+      
+      
+      # get the model layers
+      model = create_model(input_shape = input_shape)
+      
+      loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_boundaries_weights.h5')
+      
+      
+      # activation stuff 
+      layer_outputs <- lapply(loaded_model$layers[1:8], function(layer) layer$output)
+      activation_model <- keras_model(inputs = loaded_model$input, outputs = layer_outputs)
+      
+      
+      
+      
+      # prediction on image
+      activations <- activation_model %>% predict(x_img)
+      
+      first_layer_activation <- activations[[1]]
+      
+      plot_channel(first_layer_activation[1,,,250])
+      
+      
+      
+    }
+  })
+  
+  
+  
+  
+  
   
   # displays the preprocessed image
   output$preprocessed_img_removed <- renderPlot({
