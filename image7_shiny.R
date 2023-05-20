@@ -6,6 +6,7 @@ library(EBImage)
 library(SpatialPack)
 library(pracma)
 library(randomForest)
+library(png)
 
 # NOTE: Need an 'images' and 'cnn_models' folder in your working directory for user input & cnn models
 addResourcePath(prefix = "imgResources", directoryPath = "./images")
@@ -14,6 +15,11 @@ addResourcePath(prefix = "cnn_models", directoryPath = "./cnn_models")
 addResourcePath(prefix = "rf_models_merged", directoryPath = "./RF Models (Merged)")
 addResourcePath(prefix = "resources", directoryPath = "./resources")
 addResourcePath(prefix = "rf_models_removed", directoryPath = "./RF Models (Removed)")
+
+
+# global variable
+activations = NULL
+
 
 #functions
 denoise_filter <- function(img){
@@ -35,6 +41,13 @@ thresholding_filter <- function(img){
 opening_filter <- function(img){
   img = opening(img, makeBrush(5, shape='diamond'))
   return(img)
+}
+
+# for the heatmap
+plot_channel <- function(channel) {
+  rotate <- function(x) t(apply(x, 2, rev))
+  image(rotate(channel), axes = FALSE, asp = 1,
+        col = terrain.colors(12))
 }
 
 #Use this in the app to convert the users input image
@@ -212,7 +225,30 @@ ui <- fluidPage(
             # column(width = 6, plotlyOutput("plot1")),
             # column(width = 6, plotlyOutput("plot2"))
             column(6, offset = 3, plotOutput(outputId ='preprocessed_img', width='250px', height='250px'))
-          )
+          ),
+          br(),
+          br(),
+          p("Activation map corresponding to the first layer of AlexNet"),
+          fluidRow(
+
+            column(6, offset = 3,
+                   
+                   
+                   plotOutput(
+              outputId ='heatmap_first_layer',
+              
+              
+              
+              ))
+          ),
+          p("Activation map corresponding to the last layer of AlexNet"),
+          fluidRow(
+            
+            column(6, offset = 3,plotOutput(outputId ='heatmap_last_layer'))
+          ),
+          
+          p("The lighter coloured pixels are representative of higher activation values. Each channel and map corresponds to a specific feature. We can see the regions of interest where the model has detected a specific feature. ")
+          
         )
       )
     ),
@@ -451,7 +487,10 @@ server <- function(input, output) {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_raw_weights.hdf5')
     }
     
-    return(loaded_model)
+    layer_outputs <- lapply(loaded_model$layers[1:8], function(layer) layer$output)
+    activation_model <- keras_model(inputs = loaded_model$input, outputs = layer_outputs)
+    
+    return(c(loaded_model, activation_model))
   }
   
   add_model_weights_removed<- function(model) {
@@ -470,7 +509,10 @@ server <- function(input, output) {
       loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_removed_raw_weights.hdf5')
     }
     
-    return(loaded_model)
+    layer_outputs <- lapply(loaded_model$layers[1:8], function(layer) layer$output)
+    activation_model <- keras_model(inputs = loaded_model$input, outputs = layer_outputs)
+    
+    return(c(loaded_model, activation_model))
   }
   
   apply_boundary <- function(img, cell_boundary) {
@@ -631,8 +673,15 @@ server <- function(input, output) {
     x <- array(dim=c(1, 224, 224, 1))
     x[1,,,1] <- img_resized@.Data
     input_shape = dim(x)[2:4]
+    
     model = create_model(input_shape = input_shape)
-    loaded_model = add_model_weights_merged(model)
+    
+    model = add_model_weights_merged(model)
+    
+    loaded_model = model[[1]]
+    activation_model = model[[2]]
+    
+    activations <- activation_model %>% predict(x)
     
     res = loaded_model %>% predict(x)
     predicted_class = apply(res, 1, which.max)
@@ -658,7 +707,13 @@ server <- function(input, output) {
     x[1,,,1] <- img_resized@.Data
     input_shape = dim(x)[2:4]
     model = create_model(input_shape = input_shape)
-    loaded_model = add_model_weights_removed(model)
+    model = add_model_weights_removed(model)
+
+    loaded_model = model[[1]]
+    activation_model = model[[2]]
+    
+
+    activations <- activation_model %>% predict(x)
     
     res = loaded_model %>% predict(x)
     predicted_class = apply(res, 1, which.max)
@@ -788,6 +843,31 @@ server <- function(input, output) {
       paste0("Please choose a model and technique. If you have chosen techniques with boundaries, please include the CSV file containing the boundaries.")
     } else {
       paste0("The predicted cluster is: ", predicted_class)
+    }
+    
+  })
+  
+  
+  # displays heatmap image - last layer
+  output$heatmap_last_layer <- renderPlot({
+    if(!is.null(activations)){
+      print("hello")
+      last_layer_activation <- activations[[8]]
+      plot_channel(last_layer_activation[1,,,250])
+    }
+    
+    print("yo")
+    
+   
+  })
+  
+  # displays heatmap image - first layer
+  output$heatmap_first_layer <- renderPlot({
+    if(!is.null(activations)){
+      first_layer_activation <- activations[[1]]
+      plot_channel(first_layer_activation[1,,,96])
+      
+      
     }
     
   })
