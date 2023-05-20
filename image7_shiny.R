@@ -51,6 +51,8 @@ plot_channel <- function(channel) {
         col = terrain.colors(12))
 }
 
+
+
 #Use this in the app to convert the users input image
 convert_img <- function(img, img_technique){
   if (img_technique == "With Power Law and boundary"){
@@ -215,26 +217,18 @@ ui <- fluidPage(
           ),
           br(),
           br(),
-          p("Activation map corresponding to the first layer of AlexNet"),
+          p("The following image is an activation heatmap. Go to the Interpretability Tab for more details on how to interpret this"),
           fluidRow(
             
-            column(6, offset = 3,
+            column(5, offset = 2, 
                    
                    
-                   plotOutput(
-                     outputId ='heatmap_merged_first',
-                     
-                     
-                     
-                   ))
-          ),
-          p("Activation map corresponding to the last layer of AlexNet"),
-          fluidRow(
+                   plotOutput(outputId ='heatmap_merged_first')),
             
-            column(6, offset = 3,plotOutput(outputId ='heatmap_last_layer'))
           ),
           
-          p("The lighter coloured pixels are representative of higher activation values. Each channel and map corresponds to a specific feature. We can see the regions of interest where the model has detected a specific feature. ")
+          
+          p("The lighter coloured pixels are representative of higher activation values. Each channel and map corresponds to a specific feature. We can see the regions of interest where the model has detected a specific feature. In the example above, we consider the first layer of the AlexNet model - a convolution layer. We look at one particular channel which indicates the detection of one specific feature. Using the image, you will probably detect an the regions of interest to the a similar shape to the input image. These maps are typically used to understand what is being learned in each layer and hence be used to understand the black box nature of a CNN model.")
           
         )
       )
@@ -305,19 +299,20 @@ ui <- fluidPage(
           ),
           br(),
           br(),
-          p("Activation map corresponding to the first layer of AlexNet"),
+          p("The following image is an activation heatmap. Go to the Interpretability Tab for more details on how to interpret this"),
           fluidRow(
             
-            column(6, offset = 3,
+            column(5, offset = 2, 
                    
                    
-                   plotOutput(
-                     outputId ='heatmap_removed_first',
-                     
-                     
-                     
-                   ))
+                   plotOutput(outputId ='heatmap_removed_first')),
+            
           ),
+          
+          
+          p("The lighter coloured pixels are representative of higher activation values. Each channel and map corresponds to a specific feature. We can see the regions of interest where the model has detected a specific feature. In the example above, we consider the first layer of the AlexNet model - a convolution layer. We look at one particular channel which indicates the detection of one specific feature. Using the image, you will probably detect an the regions of interest to the a similar shape to the input image. These maps are typically used to understand what is being learned in each layer and hence be used to understand the black box nature of a CNN model."),
+          
+        
         )
       )
     ),
@@ -906,20 +901,19 @@ server <- function(input, output) {
     }
   })
   
-  # displays the heatmaps 
+  # ###### displays the heatmaps 
   output$heatmap_merged_first <- renderPlot({
     req(input$filename, input$img_technique, data())
     if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
       
       # get the image 
+
+      
+      
       
       img = convert_img(data(), input$img_technique)
       
-      cell_boundaries = read.csv(input$boundaries_file$datapath)
-      img_resized = apply_boundary(img, cell_boundaries)
-      img_resized = mask_resize(img, img_resized,224,224)
-      
-      #img_resized = resize(img, 224, 224)
+      img_resized = resize(img, 224, 224)
       x_img <- array(dim=c(1, 224, 224, 1))
       
       
@@ -948,21 +942,26 @@ server <- function(input, output) {
       
       first_layer_activation <- activations[[1]]
       
-      plot_channel(first_layer_activation[1,,,250])
+
+      
+      plot_channel(first_layer_activation[1,,,70])
+      
       
       
     
     }
   })
   
+
+  
   # displays the heatmaps - removed 
   output$heatmap_removed_first <- renderPlot({
-    req(input$filename, input$img_technique, data())
-    if (input$img_technique != 'No boundaries or techniques' && !(is.null(input$boundaries_file))) {
+    req(input$filename_removed, input$img_technique_removed, data_removed())
+    if (input$img_technique_removed != 'No boundaries or techniques' && !(is.null(input$boundaries_file_removed))) {
       
       # get the image 
       
-      img = convert_img(data(), input$img_technique)
+      img = convert_img(data_removed(), input$img_technique_removed)
       
       img_resized = resize(img, 224, 224)
       x_img <- array(dim=c(1, 224, 224, 1))
@@ -993,13 +992,14 @@ server <- function(input, output) {
       
       first_layer_activation <- activations[[1]]
       
-      plot_channel(first_layer_activation[1,,,250])
+      plot_channel(first_layer_activation[1,,,70])
       
       
       
     }
   })
   
+
   
   
   
