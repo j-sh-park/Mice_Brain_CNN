@@ -20,7 +20,16 @@ The CNN model used in our project is based on the AlexNet architecture.
    * [Merge VS Remove Clusters](#clusters)
    * [Performance Tab](#performance)
    * [Interpretability Tab](#interpret)
-
+## Report
+* [Student Contributions](#contr)
+* [Exclusive summary](#summary)
+* [The report](#rep)
+* [Presentation of report](#pre)
+* [Criteria](#cri)
+  * [Aim and background](#aim)
+  * [Methods](#method)
+  * [Results](#result)
+* [Shortcoming](#short)
 
 ## <div id="start">Getting Started</div>
 
@@ -109,3 +118,18 @@ This tab informs the user about accuracy and robustness of the CNN and Random Fo
 #### <div id="interpret">Interpretability Tab</div>
 
 This tab informs the user about interpretability of the CNN and Random Forest models, as well as comparisons between the two models. More information is provided for the CNN model as it is more of a black-box model as compared to Random Forest.
+
+### <div id="report">Report</div>
+### <div id="contr">Student Contributions</div>
+### <div id="summary">Exclusive summary</div>
+### <div id="rep">The report</div>
+### <div id="pre">Presentation of report</div>
+### <div id="cri">Criteria</div>
+### <div id="aim">Aim and background</div>
+### <div id="method">Methods</div>
+#### Method A
+#### Method B
+### <div id="result">Results</div>
+#### Method A
+#### Method B
+### <div id="short">Shortcoming</div>
