@@ -35,7 +35,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Method 
 
 **Add innovations for each aspect**
-**ensure understanding of biotechnological data and platforms** 
+**ensure understanding of biotechnological data and platforms**
+**can mention how rd pixels was added but scrapped and also how resnet was almost added but scrapped**
+**add how each part is reproducible if neede**
 
 ### Data collection 
 ### Developed Models
@@ -45,6 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #### Accuracy
 #### Robustness
 #### Interpretability 
+#### qualitative to ensure communication 
 
 
 ## Results - Research Question 
@@ -55,6 +58,12 @@ knitr::opts_chunk$set(echo = TRUE)
 #### Robustness
 **also mention generality of findings**
 
+```{r}
+# this is where all the code will be added --
+# for EVERYTHING 
+```
+
+
 
 ### Interpretability 
 
@@ -64,6 +73,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Clear description and illustration 
 
 ### concepts from multiple disciplines 
+
+**add in the video maybe**
 
 ### evaluation metric for the app - feedback and interview session 
 
