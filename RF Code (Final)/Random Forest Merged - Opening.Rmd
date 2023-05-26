@@ -140,6 +140,8 @@ acc_rff_opening
 ```
 ```{r}
 set.seed(2023)
+image_features = t(x_features)
+labels = y
 
 cvK = 5
 cv_acc_rff_all_opening = c()
