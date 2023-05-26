@@ -14,6 +14,20 @@ author: "Biotechnolgoy and Platforms - Image07 "
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, ouput = FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(EBImage)
+library(pracma)
+library(randomForest)
+library(ggimage)
+
+library(reticulate)
+library(RBioFormats)
+library(keras)
+library(tensorflow)
+tensorflow::set_random_seed(2023)
+```
+
 
 ## Executive Summary 
 
@@ -61,11 +75,144 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 # this is where all the code will be added --
 # for EVERYTHING 
+
+
+# get the models to generate accuracies
+# get the accuracies
+# plot the graph 
+
+# get the hardcoded accuracies for the random forest model and explain how you can get the accruacies urself 
+# plot these both side by side with panel a and panel b 
+
+```
+
+```{r}
+# robustness test
+# do a before and after with the test data with and without noise again 
+# only get the values this time 
+```
+
+### Interpretability  
+```{r}
+
+# create model architecture with no weights - to load in models based on weights
+create_model <- function(learning_rate = 0.000000000001, input_shape=c(224, 224, 1), cluster_number=17) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    
+    # 1st layer
+    layer_conv_2d(filters = 96, kernel_size = c(11,11), strides = c(4,4), activation = 'relu', input_shape = input_shape, padding="same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 2nd layer
+    layer_conv_2d(filters = 256, kernel_size = c(5,5), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 3rd layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    
+    # 4th layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>%
+    layer_batch_normalization() %>%
+    
+    # 5th layer
+    layer_conv_2d(filters = 256, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 6th layer
+    layer_flatten() %>% 
+    layer_dense(units = 4096, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    
+    # 7th layer
+    layer_dense(units = 4096, activation = 'relu') %>%
+    layer_dropout(rate = 0.5) %>%
+    
+    # 8th layer
+    layer_dense(units = cluster_number, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "categorical_crossentropy",
+    optimizer = optimizer_sgd(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+
 ```
 
 
 
-### Interpretability 
+
+```{r, output = FALSE, ouput = FALSE, warning=FALSE, message=FALSE}
+
+# load in example image
+img <- readImage("images/cell_338.png")
+
+
+img_resized = resize(img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+
+
+# load in the saved and trained model 
+# since the layers are the same for each model, we can use one example 
+# will need to saev the cnn_models from the google drive link and save it in the same place
+model = create_model(input_shape = input_shape)
+loaded_model_cam = load_model_weights_hdf5(model, 'cnn_models/alexnet_merged_17_augmented_threshold_boundaries.h5')
+
+
+# get layer outputs and create activation model based on the output layers
+
+layer_outputs <- lapply(loaded_model_cam$layers[1:8], function(layer) layer$output)
+activation_model <- keras_model(inputs = loaded_model_cam$input, outputs = layer_outputs)
+
+
+# get weights based on prediction 
+activations <- activation_model %>% predict(x_img)
+
+# get the weights associated with a layer and channel 
+first_layer_activation <- activations[[1]]
+
+third_layer_activation <- activations[[3]]
+
+last_layer_activation <- activations[[8]]
+
+
+# function to plot the weights into an image 
+plot_channel <- function(channel) {
+  rotate <- function(x) t(apply(x, 2, rev))
+  image(rotate(channel), axes = FALSE, asp = 1,
+        col = terrain.colors(12))
+}
+```
+
+```{r, figures-side, fig.show="hold", out.width="50%"}
+# orignal image 
+img_resized = resize(img, 50, 50)
+EBImage::display(img_resized, method = "raster")
+# firs layer channel 70
+plot_channel(first_layer_activation[1,,,70])
+# third layer channel 7
+plot_channel(third_layer_activation[1,,,96])
+# last layer or 8th layer - channel 300
+plot_channel(last_layer_activation[1,,,300])
+```
+
+
+
 
 
 ## Results - Product 
@@ -90,6 +237,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Conclusion 
 
+
+## add section explaining reprosucibiilty aspets
+- downlaod the data form the link
+- get accuracies of cnn, rf
+- get robustness values of cnn and rf 
+- get the cnn models from the google drive as well + the rf models
+- get the augmented data from script
+- get the techniques applied based on the script as well
 
 
 ## Student Contributions 
