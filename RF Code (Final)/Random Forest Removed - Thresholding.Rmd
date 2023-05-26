@@ -94,7 +94,6 @@ num_images = length(imgs_masked_resized_64)
 ```
 
 ```{r}
-#x_pixels = cbind(do.call(cbind, lapply(imgs_masked_resized_64, c)))
 y = as.factor(imgs_cleaned[[4]])
 ```
 
@@ -124,11 +123,6 @@ image_features_train = image_features[sample, ]
     
 y_test = labels[!sample]
 y_train = labels[sample]
-    
-#random forest on pixels
-#rf <- randomForest::randomForest(x = image_pixels_train, y = as.factor(y_train))
-#fit <- predict(rf, image_pixels_test)
-#acc_rf = mean(fit == y_test)
 
 #random forest on features    
 rff <- randomForest::randomForest(x = image_features_train, y = as.factor(y_train))
