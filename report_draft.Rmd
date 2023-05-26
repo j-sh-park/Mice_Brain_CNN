@@ -1,0 +1,93 @@
+---
+title: "Research Question"
+subtitle: "DATA3888 Data Science Capstone"
+output:
+  html_document:
+    theme: cerulean
+    code_folding: hide 
+
+date: "2023-05-28"
+author: "Biotechnolgoy and Platforms - Image07 "
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Executive Summary 
+
+**What is the problem?**
+
+**The main findings**
+
+**Key figures if needed**
+
+**Practical relevance of the study**
+
+
+## Background 
+
+**ensure understanding of biotechnological data and platforms** 
+
+## Aims
+
+## Method 
+
+**Add innovations for each aspect**
+**ensure understanding of biotechnological data and platforms** 
+
+### Data collection 
+### Developed Models
+#### AlexNet
+#### Random Forest 
+### Evaluation Strategies 
+#### Accuracy
+#### Robustness
+#### Interpretability 
+
+
+## Results - Research Question 
+
+### Performance 
+
+#### Accuracy
+#### Robustness
+**also mention generality of findings**
+
+
+### Interpretability 
+
+
+## Results - Product 
+
+### Clear description and illustration 
+
+### concepts from multiple disciplines 
+
+### evaluation metric for the app - feedback and interview session 
+
+## Discussion 
+
+### limitations 
+### issues with development process
+### issues with product
+
+### Future work
+
+### improvemtns in both discipline 
+
+## Conclusion 
+
+
+
+## Student Contributions 
+
+**Akasha**
+**Thoon**
+**Ian**
+**James**
+**George**
+**Nikki**
+
+## Appendix 
