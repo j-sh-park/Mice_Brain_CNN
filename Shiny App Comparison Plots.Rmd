@@ -1,0 +1,136 @@
+---
+title: "Graphing"
+author: "George Wu"
+date: "2023-05-14"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(plotly)
+```
+
+This is what graphing would hypothetically look like in the R shiny app. 
+
+Reference: 
+https://plotly.com/r/bar-charts/
+
+```{r}
+rf_model_technique <-  c("With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
+merged <- c(0.826, 0.831, 0.821, 0.832, 0.813)
+removed <- c(0.842, 0.839, 0.842, 0.831, 0.833)
+
+data <- data.frame(rf_model_technique, merged, removed)
+```
+
+```{r}
+data
+```
+
+```{r}
+fig <- data %>% plot_ly()
+
+fig <- fig %>% add_trace(x = ~rf_model_technique, y = ~merged, type = 'bar', text = merged,
+                         textposition = 'auto', name = "Merged Dataset")
+
+fig <- fig %>% add_trace(x = ~rf_model_technique, y = ~removed, type = 'bar', text = removed,
+                         textposition = 'auto', name = "Removed Dataset")
+
+fig <- fig %>% layout(title = "Comparison of Random Forest Machine Learning Models\nby Preprocessing Techniques",
+                      xaxis = list(title = 'Random Forest Model'),
+                      yaxis = list(title = 'Accuracy'))
+
+fig
+```
+
+```{r}
+rf_model_technique <-  c("With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
+accuracy <- c(0.826, 0.831, 0.821, 0.832, 0.813, 0.842, 0.839, 0.842, 0.831, 0.833)
+data_type <- factor(c("Merged", "Merged", "Merged", "Merged", "Merged", "Removed", "Removed", "Removed", "Removed", "Removed"))
+
+data <- data.frame(rf_model_technique, accuracy, data_type)
+```
+
+```{r}
+p <- ggplot(data = data, aes(x = rf_model_technique, y = accuracy, fill = data_type)) + 
+  geom_bar(stat = 'identity', width = 0.7, position = position_dodge(width = 0.8)) + 
+  labs(fill = "Dataset") + 
+  ggtitle("Comparison of Random Forest Machine Learning Models\nby their Image Preprocessing Technique") + 
+  xlab("Random Forest Model") + 
+  ylab("Accuracy")
+
+fig <- ggplotly(p)
+fig
+```
+
+```{r}
+cv_acc_rff_all_bound <- c(0.8141176, 0.8152941, 0.8070588, 0.8101176, 0.8089412)
+cv_acc_rff_all_denoise <- c(0.8197647, 0.8247059, 0.8169412, 0.8171765, 0.8150588)
+cv_acc_rff_all_opening <- c(0.8141176, 0.8152941, 0.8070588, 0.8101176, 0.8089412)
+cv_acc_rff_all_power <- c(0.8223529, 0.8178824, 0.8190588, 0.8218824, 0.8207059)
+cv_acc_rff_all_thresh <- c(0.8110588, 0.8284706, 0.8068235, 0.8065882, 0.8124706)
+
+barplot_df = data.frame(accuracy = c(cv_acc_rff_all_bound,
+                                     cv_acc_rff_all_denoise, 
+                                     cv_acc_rff_all_opening,
+                                     cv_acc_rff_all_power,
+                                     cv_acc_rff_all_thresh),
+                        model = c(rep("Boundary", length(cv_acc_rff_all_bound)),
+                                  rep("Denoise", length(cv_acc_rff_all_denoise)),
+                                  rep("Opening", length(cv_acc_rff_all_opening)),
+                                  rep("Power Law", length(cv_acc_rff_all_power)),
+                                  rep("Thresholding", length(cv_acc_rff_all_thresh))))
+
+p2 <- ggplot(data = barplot_df, aes(x = model, y = accuracy, fill = model)) + 
+  geom_boxplot() + 
+  geom_jitter(size = 1) + 
+  labs(x = "Random Forest Model", y = "5-fold CV Accuracy", title = "Distribution of 5-fold CV accuracies\nfor Random Forest Models on Image Preprocessing Techniques (Merged)", fill = "RF Model") + 
+    theme(plot.title = element_text(hjust = 0.5, size = 12))
+
+fig2 <- ggplotly(p2)
+fig2
+```
+
+```{r}
+cnn_model_technique <-  c("Raw Image", "With Boundary", "Opening", "Power Law", "Denoise", "Thresholding")
+accuracy <- c(0.0757764, 0.074, 0.06956522, 0.08198758, 0.0757764, 0.06832298, 0.04968944, 0.05590062, 0.06335404, 0.0621118, 0.0621118, 0.0608696)
+data_type <- factor(c("Merged", "Merged", "Merged", "Merged", "Merged", "Merged", "Removed", "Removed", "Removed", "Removed", "Removed", "Removed"))
+
+cnn_data <- data.frame(cnn_model_technique, accuracy, data_type)
+```
+
+```{r}
+p3 <- ggplot(data = cnn_data, aes(x = cnn_model_technique, y = accuracy, fill = data_type)) + 
+  geom_bar(stat = 'identity', position = position_dodge()) + 
+  labs(x = "Neural Network Model", y = "Accuracy", title = "Accuracies of CNN Deep Learning Models\non Image Preprocessing Techniques", fill = "CNN Model")
+
+fig3 <- ggplotly(p3)
+fig3
+```
+
+```{r}
+cv_acc_rff_all_boundr <- c(0.8322353, 0.8397647, 0.8421176, 0.8440000, 0.8388235)
+cv_acc_rff_all_denoiser <- c(0.8470588, 0.8458824, 0.8449412, 0.8435294, 0.8489412)
+cv_acc_rff_all_openingr <- c(0.8381176, 0.8418824, 0.8343529, 0.8392941, 0.8315294)
+cv_acc_rff_all_threshr <- c(0.8327059, 0.8449412, 0.8369412, 0.8322353, 0.8371765)
+cv_acc_rff_all_powerr <- c(0.8468235, 0.8494118, 0.8496471, 0.8425882, 0.8428235)
+
+barplot_dfr = data.frame(accuracy = c(cv_acc_rff_all_boundr,
+                                     cv_acc_rff_all_denoiser, 
+                                     cv_acc_rff_all_openingr,
+                                     cv_acc_rff_all_powerr,
+                                     cv_acc_rff_all_threshr),
+                        model = c(rep("Boundary", length(cv_acc_rff_all_boundr)),
+                                  rep("Denoise", length(cv_acc_rff_all_denoiser)),
+                                  rep("Opening", length(cv_acc_rff_all_openingr)),
+                                  rep("Power Law", length(cv_acc_rff_all_powerr)),
+                                  rep("Thresholding", length(cv_acc_rff_all_threshr))))
+
+p4 <- ggplot(data = barplot_dfr, aes(x = model, y = accuracy, fill = model)) + 
+  geom_boxplot() + 
+  geom_jitter(size = 1) + 
+  labs(x = "Random Forest Model", y = "5-fold CV Accuracy", title = "Distribution of 5-fold CV accuracies\nfor Random Forest Models on Image Preprocessing Techniques (Removed)", fill = "RF Model")
+
+fig4 <- ggplotly(p4)
+fig4
+```
