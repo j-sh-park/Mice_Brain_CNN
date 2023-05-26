@@ -94,7 +94,6 @@ num_images = length(imgs_masked_resized_64)
 ```
 
 ```{r}
-#x_pixels = cbind(do.call(cbind, lapply(imgs_masked_resized_64, c)))
 y = as.factor(imgs_cleaned[[4]])
 ```
 
@@ -136,7 +135,7 @@ rff
 ```
 
 ```{r}
-acc_rff
+acc_rff_denoiser
 ```
 
 ```{r}
