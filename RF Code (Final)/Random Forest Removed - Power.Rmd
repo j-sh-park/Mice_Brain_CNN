@@ -1,5 +1,5 @@
 ---
-title: "Random Forest Merged"
+title: "Random Forest Removed - Power Law"
 author: "George Wu"
 date: "2023-05-07"
 output: html_document
