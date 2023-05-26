@@ -1,0 +1,195 @@
+---
+title: "Random Forest Merged"
+author: "George Wu"
+date: "2023-05-07"
+output: html_document
+---
+
+```{r setup, warning=FALSE}
+library(tidyverse)
+library(EBImage)
+library(pracma)
+library(randomForest)
+library(ggimage)
+```
+
+```{r}
+main_param = 224
+# code obtained from Lab 4 code
+# Does the boundary masking for 1 cell image; Returns masked image on region of interest
+get_inside = function(cellID, img, cell_boundaries) {
+  
+  # get cell boundaries corresponding to the cellID
+  cell_boundary = cell_boundaries |>
+    filter(cell_id %in% cellID)
+  
+  # rescale the boundary according to the pixels
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  # identify which pixels are inside or outside of the cell segment using inpolygon
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1],
+                            y = pixel_locations[,2],
+                            xp = cell_boundary$vertex_x_scaled,
+                            yp = cell_boundary$vertex_y_scaled,
+                            boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+# resizes image, including its mask
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  
+  img_mask = img*img_inside
+  
+  # then, transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+
+# Loop through all images in the image folder; returns a tuple where 
+# out[[1]] is the list of images (image data), out[[2]] is the cluster it belongs to
+get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
+{
+  clusters = stringr::str_sort(list.files(img_clusters_folder_path), num = TRUE)
+  clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
+  clusters_ids = names(clusters)
+  cell_boundaries = read.csv(cell_boundaries_path)
+  
+  out = list(list(), list(), list(), c())
+  for (c in seq(to = length(clusters_ids)))
+  {
+    if (file.exists(clusters[c])) {
+      cluster = list.files(clusters[c], full.names=TRUE)
+      cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
+      cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
+      cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+      cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
+      out[[1]] = append(out[[1]], cluster_imgs)
+      out[[2]] = append(out[[2]], cluster_inside)
+      out[[3]] = append(out[[3]], cluster_resized)
+      out[[4]] = c(out[[4]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
+    }
+  }
+  return(out)
+}
+```
+
+```{r}
+# get masked images with boundaries
+imgs_cleaned <- get_images("Biotechnology_merged/data_opening/Biotechnology/data_processed/cell_images/", "Biotechnology_merged/data_opening/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+```
+
+```{r}
+imgs = imgs_cleaned[[1]]
+imgs_inside = imgs_cleaned[[2]]
+imgs_masked_resized_64 = imgs_cleaned[[3]]
+num_images = length(imgs_masked_resized_64)
+```
+
+```{r}
+y = as.factor(imgs_cleaned[[4]])
+```
+
+```{r}
+computeFeatures(img_inside, img_mask, expandRef = NULL)
+x_features = mapply(computeFeatures, 
+                              x = imgs_inside,
+                              ref = imgs, MoreArgs = list(expandRef = NULL))
+
+```
+
+```{r}
+rownames(x_features) <- colnames(computeFeatures(img_inside, img_mask, expandRef = NULL))
+```
+
+```{r}
+set.seed(2023)
+image_features = t(x_features)
+labels = y
+
+acc_rff_bound = c()
+
+sample <- sample(c(TRUE, FALSE), nrow(image_features), replace=TRUE, prob=c(0.8,0.2))
+
+image_features_test = image_features[!sample, ]
+image_features_train = image_features[sample, ]
+    
+y_test = labels[!sample]
+y_train = labels[sample]
+
+#random forest on features    
+rff <- randomForest::randomForest(x = image_features_train, y = y_train)
+fit <- predict(rff, image_features_test)
+acc_rff_bound = mean(fit == y_test)
+```
+
+```{r}
+rff
+```
+
+```{r}
+acc_rff_bound
+```
+
+```{r}
+#5-fold cross-validation, 5 repeats
+set.seed(2023)
+image_features = t(x_features)
+labels = y
+
+cvK = 5
+cv_acc_rff_all_bound = c()
+cv_acc_rff_bound = c()
+
+n_sim = 5
+for (i in 1:n_sim) {
+  print(i)
+  cvSets = cvTools::cvFolds(nrow(image_features), cvK)
+  cv_acc_rff_bound = c()
+  
+  for (j in 1:cvK) {
+    test_id = cvSets$subsets[cvSets$which == j]
+  
+    image_features_test = image_features[test_id, ]
+    image_features_train = image_features[-test_id, ]
+    
+    y_test = labels[test_id]
+    y_train = labels[-test_id]
+    
+    #random forest on features
+    rff <- randomForest::randomForest(x = image_features_train, y = as.factor(y_train))
+    fit <- predict(rff, image_features_test)
+    cv_acc_rff_bound[j] = mean(fit == y_test)
+  }
+  cv_acc_rff_all_bound <- append(cv_acc_rff_all_bound, mean(cv_acc_rff_bound))
+}
+boxplot(list(RF_Features = cv_acc_rff_all_bound), ylab = "CV Accuracy", xlab = "Random Forest Model")
+```
+Source: https://stackoverflow.com/questions/68271918/adding-gaussian-noise-to-each-element-of-rows-of-a-matrix-efficiently
+
+```{r}
+#calculate the sd for each row
+sds <- apply(image_features_test, 1, sd)
+
+#generate all noise factors at once and just add to image_features_test
+image_features_test_robust <- image_features_test + rnorm(nrow(image_features_test) * ncol(image_features_test), mean = 0, sd = sds * 0.05)
+
+fit <- predict(rff, image_features_test_robust)
+acc_rff_bound_robust = mean(fit == y_test)
+```
+
+```{r}
+fit <- predict(rff, image_features_test)
+acc_rff_bound = mean(fit == y_test)
+```
+
+```{r}
+saveRDS(rff, "rf_boundaries_features.rds")
+```
