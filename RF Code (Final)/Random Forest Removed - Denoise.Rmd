@@ -1,5 +1,5 @@
 ---
-title: "Random Forest Merged"
+title: "Random Forest Removed - Denoise"
 author: "George Wu"
 date: "2023-05-07"
 output: html_document
@@ -111,8 +111,7 @@ rownames(x_features) <- colnames(computeFeatures(img_inside, img_mask, expandRef
 ```
 
 ```{r}
-set.seed(3888)
-
+set.seed(2023)
 image_features = t(x_features)
 labels = y
 
