@@ -1,0 +1,304 @@
+---
+title: "readingImages"
+output: html_document
+date: "2023-05-23"
+---
+
+This RMD file reads images from our augmented dataset and saves the variables into individual RDS files.
+
+This was done to save computational time. Normally reading in images will take approximately 30 minutes but with these RDS files, it should only take a few seconds.
+
+```{r setup, warning=FALSE}
+library(tidyverse)
+library(EBImage)
+library(pracma)
+library(randomForest)
+library(ggimage)
+
+# IMPORTANT PARAMETERS
+# change this based on image size you want
+main_param = 224
+cluster_number = 17
+```
+
+# Setup
+
+```{r}
+# code obtained from Lab 4 code
+
+# Does the boundary masking for 1 cell image; Returns masked image on region of interest
+get_inside = function(cellID, img, cell_boundaries) {
+  
+  # get cell boundaries corresponding to the cellID
+  cell_boundary = cell_boundaries |>
+    filter(cell_id %in% cellID)
+  
+  # rescale the boundary according to the pixels
+  pixels = dim(img)
+  cell_boundary$vertex_x_scaled <- 1+((cell_boundary$vertex_x - min(cell_boundary$vertex_x))/0.2125)
+  cell_boundary$vertex_y_scaled <- 1+((cell_boundary$vertex_y - min(cell_boundary$vertex_y))/0.2125)
+  
+  # identify which pixels are inside or outside of the cell segment using inpolygon
+  pixel_locations = expand.grid(seq_len(nrow(img)), seq_len(ncol(img)))
+  
+  pixels_inside = inpolygon(x = pixel_locations[,1],
+                            y = pixel_locations[,2],
+                            xp = cell_boundary$vertex_x_scaled,
+                            yp = cell_boundary$vertex_y_scaled,
+                            boundary = TRUE)
+  
+  img_inside = img
+  img_inside@.Data <- matrix(pixels_inside, nrow = nrow(img), ncol = ncol(img))
+  
+  return(img_inside)
+}
+
+# resizes image, including its mask
+mask_resize = function(img, img_inside, w = 50, h = 50) {
+  
+  img_mask = img*img_inside
+  
+  # then, transform the masked image to the same number of pixels, 50x50
+  img_mask_resized = resize(img_mask, w, h)
+  
+  return(img_mask_resized)
+}
+
+mask_resize_no_boundaries = function(img, w = 50, h = 50) {
+  
+  # then, transform the masked image to the same number of pixels, 50x50
+  img_resized = resize(img, w, h)
+  
+  return(img_resized)
+}
+
+# Loop through all images in the image folder; returns a tuple where 
+# out[[1]] is the list of images (image data), out[[2]] is the cluster it belongs to
+get_images = function(img_clusters_folder_path, cell_boundaries_path, w=50, h=50)
+{
+  clusters = stringr::str_sort(list.files(img_clusters_folder_path), num = TRUE)
+  clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
+  clusters_ids = names(clusters)
+
+  cell_boundaries = read.csv(cell_boundaries_path)
+  
+  out = list(list(), c())
+
+  for (c in seq(to = length(clusters_ids)))
+  {
+    if (file.exists(clusters[c])) {
+      cluster = list.files(clusters[c], full.names=TRUE)
+      cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
+      cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
+      cluster_inside = mapply(get_inside, cluster_cell_ids, cluster_imgs, MoreArgs = list(cell_boundaries = cell_boundaries), SIMPLIFY = FALSE)
+      cluster_resized = mapply(mask_resize, cluster_imgs, cluster_inside, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
+      out[[1]] = append(out[[1]], cluster_resized)
+      out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
+    }
+  }
+
+  return(out)
+}
+
+get_images_no_boundaries = function(img_clusters_folder_path, w=50, h=50)
+{
+  clusters = stringr::str_sort(list.files(img_clusters_folder_path), num = TRUE)
+  clusters = sapply(clusters, function(x) paste(img_clusters_folder_path, x, sep=''))
+  clusters_ids = names(clusters)
+  
+  out = list(list(), c())
+  for (c in seq(to = length(clusters_ids)))
+  {
+    if (file.exists(clusters[c])) {
+      cluster = list.files(clusters[c], full.names=TRUE)
+      cluster_cell_ids = gsub(".*cell_|.png", "", cluster)
+      cluster_imgs = sapply(cluster, readImage, simplify=FALSE)
+      cluster_resized = mapply(mask_resize_no_boundaries, cluster_imgs, MoreArgs = list(w=main_param, h=main_param), SIMPLIFY = FALSE)
+      out[[1]] = append(out[[1]], cluster_resized)
+      out[[2]] = c(out[[2]], rep(clusters_ids[[c]], times=length(cluster_cell_ids)))
+    }
+  }
+  return(out)
+}
+```
+
+
+You will data from this Google Drive folder: https://drive.google.com/drive/folders/1jp6Fo5gww6vW3T-Rr2S3D-zwoM2b0QIU?usp=sharing
+
+# MERGED
+
+## NO BOUNDARIES/RAW
+```{r}
+imgs_cleaned <- get_images_no_boundaries("data_merged_augmented/Biotechnology/data_processed/cell_images/", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_raw_merged.rds")
+```
+
+## BOUNDARY
+```{r}
+imgs_cleaned <- get_images("data_merged_augmented/Biotechnology/data_processed/cell_images/", "data_merged_augmented/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_boundary_merged.rds")
+```
+
+## OPENING
+```{r}
+imgs_cleaned <- get_images("data_opening_merged/Biotechnology/data_processed/cell_images/", "data_opening_merged/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_opening_merged.rds")
+```
+
+## THRESHOLDING
+```{r}
+imgs_cleaned <- get_images("data_thresholding_merged/Biotechnology/data_processed/cell_images/", "data_thresholding_merged/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_thresholding_merged.rds")
+```
+
+## POWER
+```{r}
+imgs_cleaned <- get_images("data_power_merged/Biotechnology/data_processed/cell_images/", "data_power_merged/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_power_merged.rds")
+```
+
+## DENOISE
+```{r}
+imgs_cleaned <- get_images("data_denoise_merged/Biotechnology/data_processed/cell_images/", "data_denoise_merged/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_denoise_merged.rds")
+```
+
+# REMOVED
+
+## NO BOUNDARIES/RAW
+```{r}
+imgs_cleaned <- get_images_no_boundaries("data_less_clusters_augumented/Biotechnology/data_processed/cell_images/", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_raw_removed.rds")
+```
+
+## BOUNDARY
+```{r}
+imgs_cleaned <- get_images("data_less_clusters_augumented/Biotechnology/data_processed/cell_images/", "data_less_clusters_augumented/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_boundary_removed.rds")
+```
+
+## OPENING
+```{r}
+imgs_cleaned <- get_images("data_opening_removed/Biotechnology/data_processed/cell_images/", "data_opening_removed/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_opening_removed.rds")
+```
+
+## THRESHOLDING
+```{r}
+imgs_cleaned <- get_images("data_thresholding_removed/Biotechnology/data_processed/cell_images/", "data_thresholding_removed/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_thresholding_removed.rds")
+```
+
+## POWER
+```{r}
+imgs_cleaned <- get_images("data_power_removed/Biotechnology/data_processed/cell_images/", "data_power_removed/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_power_removed.rds")
+```
+
+## DENOISE
+```{r}
+imgs_cleaned <- get_images("data_denoise_removed/Biotechnology/data_processed/cell_images/", "data_denoise_removed/Biotechnology/data_processed/cell_boundaries.csv.gz", main_param, main_param)
+saveRDS(imgs_cleaned, file="imgs_cleaned_denoise_removed.rds")
+```
+
+# TESTING THAT IT WORKS
+```{r, warning=FALSE}
+library(reticulate)
+library(RBioFormats)
+library(keras)
+library(tensorflow)
+tensorflow::set_random_seed(2023)
+
+imgs_cleaned = readRDS("imgs_cleaned_denoise_merged.rds")
+
+imgs_masked_resized_64 = imgs_cleaned[[1]]
+num_images = length(imgs_masked_resized_64)
+
+# reshape image data into an array x = (total number of images, img width, img height, image data)
+x <- array(dim=c(num_images, main_param, main_param, 1))
+for (i in 1:num_images) {
+  x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
+}
+
+input_shape = dim(x)[2:4]
+# factorize cluster names
+y = as.factor(imgs_cleaned[[2]])
+```
+
+```{r}
+set.seed(2023)
+# split data into training and testing sets
+sample <- sample(c(TRUE, FALSE), num_images, replace=TRUE, prob=c(0.8,0.2))
+x_train  <- x[sample,,,1]
+x_test   <- x[!sample,,,1]
+y_train = y[sample]
+y_test = y[!sample]
+
+# replace total number of images as number of training images
+num_images = dim(x_train)[1]
+```
+
+```{r}
+# create model architecture with no weights
+create_model <- function(learning_rate = 0.000000000001, input_shape=c(224, 224, 1), cluster_number=17) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    
+    # 1st layer
+    layer_conv_2d(filters = 96, kernel_size = c(11,11), strides = c(4,4), activation = 'relu', input_shape = input_shape, padding="same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 2nd layer
+    layer_conv_2d(filters = 256, kernel_size = c(5,5), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 3rd layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    
+    # 4th layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>%
+    layer_batch_normalization() %>%
+    
+    # 5th layer
+    layer_conv_2d(filters = 256, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 6th layer
+    layer_flatten() %>% 
+    layer_dense(units = 4096, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    
+    # 7th layer
+    layer_dense(units = 4096, activation = 'relu') %>%
+    layer_dropout(rate = 0.5) %>%
+    
+    # 8th layer
+    layer_dense(units = cluster_number, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "categorical_crossentropy",
+    optimizer = optimizer_sgd(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+```
+
+```{r}
+model = create_model()
+loaded_model = load_model_weights_hdf5(model, 'cnn_models/alexnet_denoise_merged_weights.h5')
+pred <- loaded_model %>% predict(x_test)
+pred_class = apply(pred, 1, which.max)
+
+# resubstituition accuracy
+(sum(diag(table(pred_class, y_test)))/length(y_test))
+```
+
