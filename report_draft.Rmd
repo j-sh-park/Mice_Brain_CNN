@@ -15,6 +15,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, ouput = FALSE, warning=FALSE, message=FALSE}
+
+
+library(SpatialPack)
 library(tidyverse)
 library(EBImage)
 library(pracma)
@@ -71,15 +74,38 @@ tensorflow::set_random_seed(2023)
 
 img <- readImage("images/cell_338.png")
 
+# original 
 EBImage::display(img, method = "raster")
 
-img_resized = resize(img, 224, 224)
-x_img <- array(dim=c(1, 224, 224, 1))
+# denoise 
+denoise_img = denoise(as.matrix(img), type="enhanced")
+
+EBImage::display(denoise_img, method = "raster")
+
+# thresholding 
+thresholding_img = thresh(img, w=9, h=8, offset=0.05)
+thresholding_img = fillHull(opening(thresholding_img, makeBrush(5, shape='diamond')))
+
+EBImage::display(thresholding_img, method = "raster")
+
+# opening 
+
+opening_img = opening(img, makeBrush(5, shape='diamond'))
+
+EBImage::display(opening_img, method = "raster")
+
+# power law 
+power_img = img^2.5
+
+EBImage::display(power_img, method = "raster")
+
+## dadding random noise 
 
 
-x_img[1,,,1] <- img_resized@.Data
+noisy_img = imnoise(img, type = "gaussian", mean = 0, sd = 0.05, epsilon = 10, var = 10,
+       looks = 1)
 
-input_shape = dim(x_img)[2:4]
+EBImage::display(noisy_img, method = "raster")
 ```
 
 
