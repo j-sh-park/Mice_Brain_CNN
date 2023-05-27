@@ -319,3 +319,11 @@ plot_channel(last_layer_activation[1,,,300])
 **Nikki**
 
 ## Appendix 
+
+![Overview](resources/figures/figure1_full_overview.png)
+![Figure 1 Full Overview](resources/figures/figure1_full_overview.png)
+
+![Figure 1 PanelA](resources/figures/figure1_panelA_rf_horizontal.png)
+![Figure 1 Panel B](resources/figures/figure1_panelB_cnn.png)
+![Figure 1 Overview](resources/figures/figure1_overview.png)
+![Shiny App Workflow](resources/figures/shiny_flowchart.png)
