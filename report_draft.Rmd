@@ -54,6 +54,37 @@ tensorflow::set_random_seed(2023)
 **add how each part is reproducible if neede**
 
 ### Data collection 
+
+
+```{r}
+# figure showing the preprocessing techniques
+#orignial image
+# threhoslded
+# denoise
+# power law 
+# opening 
+# with random noise 
+```
+
+```{r}
+# Load the image and preprocess it - same image for example 
+
+img <- readImage("images/cell_338.png")
+
+EBImage::display(img, method = "raster")
+
+img_resized = resize(img, 224, 224)
+x_img <- array(dim=c(1, 224, 224, 1))
+
+
+x_img[1,,,1] <- img_resized@.Data
+
+input_shape = dim(x_img)[2:4]
+```
+
+
+
+
 ### Developed Models
 #### AlexNet
 #### Random Forest 
@@ -81,10 +112,11 @@ tensorflow::set_random_seed(2023)
 # get the accuracies
 # plot the graph 
 
-# get the hardcoded accuracies for the random forest model and explain how you can get the accruacies urself 
+# get the for the random forest model and explain how you can get the accruacies urself 
 # plot these both side by side with panel a and panel b 
 
 ```
+
 
 ```{r}
 # robustness test
@@ -214,7 +246,6 @@ plot_channel(last_layer_activation[1,,,300])
 
 
 
-
 ## Results - Product 
 
 ### Clear description and illustration 
@@ -239,8 +270,8 @@ plot_channel(last_layer_activation[1,,,300])
 
 
 ## add section explaining reprosucibiilty aspets
-- downlaod the data form the link
-- get accuracies of cnn, rf
+- download the data form the link
+- get ac curacies of cnn, rf
 - get robustness values of cnn and rf 
 - get the cnn models from the google drive as well + the rf models
 - get the augmented data from script
