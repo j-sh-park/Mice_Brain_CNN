@@ -1,13 +1,12 @@
 ---
-title: "Research Question"
-subtitle: "DATA3888 Data Science Capstone"
+title: "How does Data Wrangling Impact the classification of Mouse Brain Cell images for both CNNs and Random Forest?"
+subtitle: "DATA3888 Data Science Capstone 2023: Image07"
 output:
-  html_document:
-    theme: cerulean
+  rmdformats::robobook:
     code_folding: hide 
 
 date: "2023-05-28"
-author: "Biotechnolgoy and Platforms - Image07 "
+author: "Biotechnology and Platforms - Image07 "
 ---
 
 ```{r setup, include=FALSE}
@@ -257,7 +256,9 @@ plot_channel <- function(channel) {
 }
 ```
 
-```{r, figures-side, fig.show="hold", out.width="50%"}
+```{r, figures-side, out.width="200%"}
+# layout plots in 2x2 format
+par(mfrow=c(2,2))
 # orignal image 
 img_resized = resize(img, 50, 50)
 EBImage::display(img_resized, method = "raster")
