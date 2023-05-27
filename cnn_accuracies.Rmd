@@ -1,0 +1,174 @@
+---
+title: "Untitled"
+output: html_document
+date: "2023-05-08"
+---
+```{r setup, warning=FALSE}
+library(keras)
+
+library(tidyverse)
+library(EBImage)
+library(pracma)
+library(randomForest)
+library(ggimage)
+
+main_param = 224
+cluster_number = 17
+```
+
+# Setup
+
+```{r}
+# create model architecture with no weights - to load in models based on weights
+create_model <- function(learning_rate = 0.000000000001, input_shape=c(224, 224, 1), cluster_number=17) {
+  
+  k_clear_session()
+  
+  model <- keras_model_sequential() %>%
+    
+    # 1st layer
+    layer_conv_2d(filters = 96, kernel_size = c(11,11), strides = c(4,4), activation = 'relu', input_shape = input_shape, padding="same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 2nd layer
+    layer_conv_2d(filters = 256, kernel_size = c(5,5), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 3rd layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    
+    # 4th layer
+    layer_conv_2d(filters = 384, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>%
+    layer_batch_normalization() %>%
+    
+    # 5th layer
+    layer_conv_2d(filters = 256, kernel_size = c(3,3), strides=c(1,1), activation = 'relu', padding = "same") %>% 
+    layer_batch_normalization() %>%
+    layer_max_pooling_2d(pool_size = c(3, 3), strides = c(2,2)) %>% 
+    
+    # 6th layer
+    layer_flatten() %>% 
+    layer_dense(units = 4096, activation = 'relu') %>% 
+    layer_dropout(rate = 0.5) %>% 
+    
+    # 7th layer
+    layer_dense(units = 4096, activation = 'relu') %>%
+    layer_dropout(rate = 0.5) %>%
+    
+    # 8th layer
+    layer_dense(units = cluster_number, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "categorical_crossentropy",
+    optimizer = optimizer_sgd(learning_rate = learning_rate),
+    metrics = "accuracy"
+  )
+  
+  return(model)
+  
+}
+```
+
+
+## Main Accuracy Function
+```{r, warning=FALSE, message=FALSE}
+get_accuracy <- function(img_file, model_weights_file) {
+  imgs_cleaned = readRDS(img_file)
+  imgs_masked_resized_64 = imgs_cleaned[[1]]
+  num_images = length(imgs_masked_resized_64)
+  
+  # reshape image data into an array x = (total number of images, img width, img height, image data)
+  x <- array(dim=c(num_images, main_param, main_param, 1))
+  for (i in 1:num_images) {
+    x[i,,,1] <- imgs_masked_resized_64[[i]]@.Data
+  }
+  # factorize cluster names
+  y = as.factor(imgs_cleaned[[2]])
+  
+  set.seed(2023)
+  # split data into training and testing sets
+  sample <- sample(c(TRUE, FALSE), num_images, replace=TRUE, prob=c(0.8,0.2))
+  x_train  <- x[sample,,,1]
+  x_test   <- x[!sample,,,1]
+  y_test = y[!sample]
+  
+  # replace total number of images as number of training images
+  num_images = dim(x_train)[1]
+  
+  model = create_model()
+  model = load_model_weights_hdf5(model, model_weights_file)
+  
+  p <- model %>% predict(x_test)
+  p_class = apply(p, 1, which.max)
+  acc = (sum(diag(table(p_class, y_test)))/length(y_test))
+  
+  # freeing up memory
+  rm(model)
+  rm(x_train)
+  rm(x_test)
+  rm(x)
+  rm(y)
+  rm(num_images)
+  rm(imgs_masked_resized_64)
+  rm(imgs_cleaned)
+  rm(p)
+  rm(p_class)
+  rm(sample)
+  return(acc)
+}
+
+```
+
+
+# Generate Accuracies
+
+```{r}
+#### REMOVED 
+removed_raw_acc = get_accuracy('imgs_cleaned_raw_removed.rds', 'cnn_models/alexnet_removed_raw_weights.hdf5')
+
+removed_boundaries_acc = get_accuracy('imgs_cleaned_boundary_removed.rds', 'cnn_models/alexnet_removed_boundaries_weights.h5')
+
+removed_opening_acc = get_accuracy('imgs_cleaned_opening_removed.rds', 'cnn_models/alexnet_opening_removed_weights.h5')
+
+removed_denoise_acc = get_accuracy('imgs_cleaned_denoise_removed.rds', 'cnn_models/alexnet_denoise_removed_weights.h5')
+
+removed_power_acc = get_accuracy('imgs_cleaned_power_removed.rds', 'cnn_models/alexnet_removed_17_augmented_power_boundaries.h5')
+
+removed_threshold_acc = get_accuracy('imgs_cleaned_thresholding_removed.rds', 'cnn_models/alexnet_removed_17_thresholding_boundaries.h5')
+
+#### MERGED
+
+merged_raw_acc = get_accuracy('imgs_cleaned_raw_merged.rds', 'cnn_models/alexnet_merged_raw_weights.hdf5')
+
+merged_boundaries_acc = get_accuracy('imgs_cleaned_boundary_merged.rds', 'cnn_models/alexnet_merged_boundaries_weights.h5')
+
+merged_opening_acc = get_accuracy('imgs_cleaned_opening_merged.rds', 'cnn_models/alexnet_merged_opening_weights.hdf5')
+
+merged_denoise_acc = get_accuracy('imgs_cleaned_denoise_merged.rds', 'cnn_models/alexnet_denoise_merged_weights.h5')
+
+merged_power_acc = get_accuracy('imgs_cleaned_power_merged.rds', 'cnn_models/alexnet_merged_17_augmented_power_boundaries.h5')
+
+merged_threshold_acc = get_accuracy('imgs_cleaned_thresholding_merged.rds', 'cnn_models/alexnet_merged_17_augmented_threshold_boundaries.h5')
+```
+
+
+# Save Data
+
+```{r}
+save(removed_raw_acc, 
+     removed_boundaries_acc, 
+     removed_denoise_acc, 
+     removed_threshold_acc,
+     removed_power_acc, 
+     removed_opening_acc, 
+     merged_raw_acc, 
+     merged_power_acc, 
+     merged_denoise_acc, 
+     merged_threshold_acc, 
+     merged_opening_acc, 
+     merged_boundaries_acc
+  ,file = "cnn_accuracies.RData")
+```
