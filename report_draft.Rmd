@@ -447,9 +447,7 @@ Yang, G., Ye, Q., & Xia, J. (2022). Unbox the black-box for the medical explaina
 
 ## Appendix 
 
-![Figure 1 Full Overview](resources/figures/figure1_full_overview.png)
 
 ![Figure 1 Panel A](resources/figures/figure1_panelA_rf_horizontal.png)
 ![Figure 1 Panel B](resources/figures/figure1_panelB_cnn.png)
 ![Figure 1 Overview](resources/figures/figure1_overview.png)
-![Shiny App Workflow](resources/figures/shiny_flowchart.png)
