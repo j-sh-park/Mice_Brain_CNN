@@ -36,11 +36,11 @@ library(tensorflow)
 tensorflow::set_random_seed(2023)
 ```
 
-Report/Working Github – 
+[Report/Working Github](https://github.sydney.edu.au/anad8554/Image7) 
 
-Shiny Github – 
+[Shiny Github](https://github.sydney.edu.au/tzar0514/image7-shiny)
 
-Session Info - hyperlink
+[Appendix](Session Info)
 
 
 ## Executive Summary 
@@ -466,6 +466,14 @@ Yang, G., Ye, Q., & Xia, J. (2022). Unbox the black-box for the medical explaina
 
 
 ## Appendix 
+
+
+### Session Info 
+
+```{r}
+sessionInfo()
+```
+
 
 
 ![Figure 1 Panel A](resources/figures/figure1_panelA_rf_horizontal.png)
