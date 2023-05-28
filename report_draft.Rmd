@@ -14,14 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, ouput = FALSE, warning=FALSE, message=FALSE}
-
-
 library(SpatialPack)
 library(tidyverse)
 library(EBImage)
 library(pracma)
 library(randomForest)
 library(ggimage)
+library(ggplot2)
+library(cowplot)
 
 library(reticulate)
 library(RBioFormats)
@@ -59,13 +59,57 @@ tensorflow::set_random_seed(2023)
 
 
 ```{r}
+# image output formatting
+par(mfrow=c(2,3), mai=c(0.5, 0.5, 0, 1))
+
+denoise_filter <- function(img){
+  img = denoise(as.matrix(img), type="enhanced") 
+  return(img)
+}
+
+power_filter <- function(img){
+  img = img^2.5
+  return(img)
+}
+
+thresholding_filter <- function(img){
+  img = thresh(img, w=9, h=8, offset=0.05)
+  img = fillHull(opening(img, makeBrush(5, shape='diamond')))
+  return(img)
+}
+
+opening_filter <- function(img){
+  img = opening(img, makeBrush(5, shape='diamond'))
+  return(img)
+}
 # figure showing the preprocessing techniques
-#orignial image
+# orignial image
 # threhoslded
 # denoise
 # power law 
 # opening 
 # with random noise 
+
+img <- readImage("images/cell_338.png")
+threshold_img = thresholding_filter(img)
+denoise_img = denoise_filter(img)
+opening_img = opening_filter(img)
+power_img = power_filter(img)
+EBImage::display(img, method = "raster")
+text(x = 20, y = 150, label = "Original", adj = c(0,1), col = "orange", cex = 1.5)
+EBImage::display(threshold_img, method = "raster")
+text(x = 20, y = 150, label = "Threshold", adj = c(0,1), col = "orange", cex = 1.5)
+EBImage::display(denoise_img, method = "raster")
+text(x = 20, y = 150, label = "Denoise", adj = c(0,1), col = "orange", cex = 1.5)
+EBImage::display(opening_img, method = "raster")
+text(x = 20, y = 150, label = "Opening", adj = c(0,1), col = "orange", cex = 1.5)
+EBImage::display(power_img, method = "raster")
+text(x = 20, y = 150, label = "Power Law", adj = c(0,1), col = "orange", cex = 1.5)
+
+noisy_img = imnoise(img, type = "gaussian", mean = 0, sd = 0.05, epsilon = 10, var = 10,
+       looks = 1)
+EBImage::display(noisy_img, method = "raster")
+text(x = 20, y = 150, label = "Adding Noise", adj = c(0,1), col = "orange", cex = 1.5)
 ```
 
 ```{r}
@@ -101,10 +145,7 @@ EBImage::display(power_img, method = "raster")
 ## dadding random noise 
 
 
-noisy_img = imnoise(img, type = "gaussian", mean = 0, sd = 0.05, epsilon = 10, var = 10,
-       looks = 1)
 
-EBImage::display(noisy_img, method = "raster")
 ```
 
 
@@ -125,6 +166,46 @@ EBImage::display(noisy_img, method = "raster")
 ### Performance 
 
 #### Accuracy
+
+```{r}
+cnn_accuracies <- readRDS("CNN Accuracy Data.rds")
+rf_cv_merged <- readRDS("Random Forest CV Merged Data.rds")
+rf_cv_removed <- readRDS("Random Forest CV Removed Data.rds")
+
+p <- ggplot(data = rf_cv_merged, aes(x = model, y = accuracy, fill = model)) + 
+  geom_boxplot() + 
+  geom_jitter(size = 1) + 
+  #we apply title to every plot, not just fig
+  labs(x = "Random Forest Model (Merged)", y = "5-fold CV Accuracy", fill = "Model/Dataset") +
+  theme(axis.text.x = element_text(angle = 45, size = 3)) 
+#ggplotly(p)
+
+p2 <- ggplot(data = cnn_accuracies, aes(x = cnn_model_technique, y = accuracy, fill = data_type)) + 
+  geom_bar(stat = 'identity', width = 0.7, position = position_dodge(width = 0.8)) + 
+  theme(axis.text.x = element_text(angle = 45, size = 3)) +
+  labs(fill = "Model/Dataset") + 
+  xlab("CNN Model") + 
+  ylab("Accuracy")
+#ggplotly(p2)
+
+p3 <- ggplot(data = rf_cv_removed, aes(x = model, y = accuracy, fill = model)) + 
+  geom_boxplot(show.legend = FALSE) + 
+  geom_jitter(size = 1) + 
+  labs(x = "Random Forest Model (Removed)", y = "5-fold CV Accuracy", fill = "Model/Dataset") +
+  theme(axis.text.x = element_text(angle = 45, size = 3)) 
+#ggplotly(p3)
+
+leg <- get_legend(
+  p +
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+#grid.arrange(p, p3, p2, ncol=2, nrow=2)
+plot_grid(p3 + theme(legend.position="none"), p + theme(legend.position="right"), p2 + theme(legend.position="right"), labels = c("A", "B", "C"), vjust = 1)
+```
+
+
 #### Robustness
 **also mention generality of findings**
 
