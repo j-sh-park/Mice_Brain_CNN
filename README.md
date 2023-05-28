@@ -49,6 +49,9 @@ Our Report requires the use of the following dependencies:
 - pracma
 - tidyverse
 
+**IMPORTANT:** You will need `cnn_models/alexnet_merged_17_augmented_threshold_boundaries.h5` in order to reproduce this report.
+- The CNN model can be found <a href="https://drive.google.com/file/d/1LtC88X1hY5QR9BV8P8yoOE3AHAZ5dPMY/view?usp=drive_link">here</a>. The file size is 2.37GB.
+
 Please ensure all these packages are installed before knitting `report_draft.Rmd`.
 
 ## <div id="notice">Important Notice</div>
