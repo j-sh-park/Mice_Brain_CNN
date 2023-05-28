@@ -33,6 +33,9 @@ The CNN model used in our project is based on the AlexNet architecture.
 
 ## <div id="start">Getting Started</div>
 
+**IMPORTANT:** Please follow these steps sequentially in order to render the report.
+
+
 **IMPORTANT:** Please follow these steps sequentially in order to run our Shiny App successfully. The Shiny App Github is located <a href="https://github.sydney.edu.au/tzar0514/image7-shiny">here</a>.
 
 ###  <div id="clone">Clone Repository</div>
