@@ -4,11 +4,12 @@ subtitle: "DATA3888 Data Science Capstone 2023: Image07"
 output:
   rmdformats::robobook:
     code_folding: hide 
+    toc:
+      toc_depth: 6
 
 date: "2023-05-28"
 author: "Biotechnology and Platforms - Image07 "
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -35,35 +36,67 @@ library(tensorflow)
 tensorflow::set_random_seed(2023)
 ```
 
+Report/Working Github – 
+
+Shiny Github – 
+
+Session Info - hyperlink
+
 
 ## Executive Summary 
 
 **What is the problem?**
 
+A set of 1,000 microscopic cell images was randomly sampled from the dataset. They have been pre-clustered by 10xGenomics(2023) based on the k-means algorithm and their gene expression. We focus on assessing the impact of data wrangling techniques on the performance of AlexNet and random forest models when classifying these images. Such data wrangling includes cluster alteration approaches and image pre-processing techniques. We create an interactive learning tool and communicate our findings.  
+
 **The main findings**
 
-**Key figures if needed**
+There was no significant difference between the two cluster alteration approaches used. The random forests were 10-fold more accurate than the AlexNet models, however AlexNet was more robust. The best performing models for CNN and machine learning were trained using images that had the power law technique applied. There is not enough evidence to suggest that the differing pre-processing techniques had a significant impact, however adding boundaries increased accuracy for both models. Activation heatmaps allowed for better interpretability of our CNN model.
 
-**Practical relevance of the study**
+**Practical Relevance **
+
+Using these results and comparing CNN on image data vs a random forest classifier on extracted image features, it can be distinguished which models are better suited for image classification. Determining which data wrangling approach is best can help propel the development of improved models and increase quality of training sets. This can be further expanded in the context of biotechnological platforms where pre-processing can help highlight cell features in images. 
 
 
-## Background 
 
-**ensure understanding of biotechnological data and platforms** 
+## Background and Aim
 
-## Aims
+The problem assigned is to examine how cell images can be used to predict different types of cells, as defined by their gene expression.
+Given that deep learning approaches have performed well in computer vision tasks (Chai et al., 2021) but are also new and not fully understood, we decided to employ both a convolutional neural network (CNN) classifier and the classical machine learning classifier: Random Forest (RF). Comparing the results between deep learning and classical machine learning approaches can help us better understand the performance, interpretability and limitations of both classifiers when applied to images of mice brain cells. Additionally, given the implications of its significance in recent studies (Salvi et al., 2020 and Tachibana et al., 2020), we decided to employ several pre-processing techniques to determine the impact on both models. Therefore, our main question is:
+
+How do different Data Wrangling Techniques Impact the Classification of Mouse Brain Cell images for both AlexNet and Random Forest?
+
+Our secondary aim is to create a learning tool that will allow our users to understand the impact and importance of data wrangling including image pre-processing techniques. This tool can be used by data science students to drive the development of models by ensuring good quality training sets. Science students will also be able to understand how the images they supply can affect classification, and how the models work in the context of biotechnological platforms. We aim to ensure effective communication of the underlying concepts present for both target audiences.
+Many models are not used in medical contexts as the decision-making process is unclear (Yang et al., 2022). The examination of the activation heat maps from our CNN (AlexNet) help us to understand the features that each layer of our neural network is recognizing. Thus, this project can also contribute to future studies on the classification of cell gene expression from cell images and examines the feasibility of AlexNet and RF as image-based cell classifiers.
+
 
 ## Method 
 
-**Add innovations for each aspect**
-**ensure understanding of biotechnological data and platforms**
-**can mention how rd pixels was added but scrapped and also how resnet was almost added but scrapped**
-**add how each part is reproducible if neede**
 
 ### Data collection 
 
 
-```{r}
+The overall approach for our method can be found in Figure 1. 
+
+![Figure 1 - Full Overview of Project Workflow](resources/figures/figure1_full_overview.png)
+
+The data is obtained from 10xgenomics where they use a 10µm section from a C57BL/6 mouse from Charles River Laboratories. While the full coronal section contained 130,870 cells, the ‘tiny’ section was selected which contains an image of 36,602 cells and their associated gene expression levels.  10xGenomics clustered these cells using K-means clustering, based on their gene expression (248 genes) into 28 clusters (10xGenomics, 2023). From this, a random sampling technique was used to create a subset of 1,000 cells. Each image is a microscopic image of the cell nuclei, associated with their defined clusters. 
+Upon initial data analysis, images with unclear single cells and excessive noise were identified. The elimination of such images was necessary to ensure decreased interference for the extraction of meaningful features,  and quality assurance. Some clusters do not have enough data for training. We investigate the UMAP of the gene expression and consider two cluster alteration approaches. One is to merge smaller clusters into nearby clusters and the other is to remove small clusters completely.  
+The UMAP (Uniform Manifold Approximation and Projection) preserves the local structure of high-dimensional data in a lower-dimensional space(2D), when different cluster regions overlap, they have similar features, however, different clusters are still representing different types of cells. By merging clusters together, we may be classifying cells based on their shared parent class, but we also consider that this may be different, therefore we also try removing those small clusters. Our two cluster alteration approaches (merging and removing) were done manually. 
+We apply data augmentation due to the imbalanced nature of the dataset.  Note, we apply image transformation techniques on existing images when generating new data to ensure the model has new information to learn, to prevent overfitting and reduce bias. We iterate through each cluster’s folder, and transform each image with random values of translation, rotation and change in brightness, repeating until the cluster has the amount of image we need. The R script for this can be found [here](https://github.sydney.edu.au/anad8554/Image7/blob/main/tools/Image_augmentation.Rmd  ) and the augmented data can be found [here](https://drive.google.com/drive/folders/1jp6Fo5gww6vW3T-Rr2S3D-zwoM2b0QIU?usp=sharing ).
+
+
+To improve training data quality, we consider different image pre-processing techniques to determine which can highlight cell features. This step aims to reduce noise and embrace features such as cell structure. We consider the following:
+1.	Denoise: averaging pixel values within a window around each pixel to smooth the image. This reduces small irregularities. (Figure 2)
+2.	Power Law: a nonlinear mapping technique to adjust pixel values, by setting gamma as 2.5, we enhance the image’s contrast which highlights fine details and reduces noise. (Figure 2)
+3.	Opening: This involves two morphological operations. Erosion shrinks the object and removes small noise by scanning a structuring element over the image, and dilation expands/thickening the boundaries of the object which enhance the features of the cells. (Figure 2)
+4.	Thresholding: converts the image into a binary image,  each pixel is assigned as foreground or background depending on if the original is greater or less than the threshold value. This technique gives us the cell’s structure and their spatial relationships, it removes all the noise completely but also removes the details of the cell’s features. (Figure 2)
+The full script of converting all images with the chosen pre-processing technique can be found [here](https://github.sydney.edu.au/anad8554/Image7/blob/main/tools/Image_convert.Rmd) We also consider images with a given cell boundary and without a boundary in order to determine the impact of adding this processing technique. 
+After this, there are 8 training sets to consider. Each training set has been derived from either the removed cluster approach or the merged cluster approach and each has a pre-processing technique applied (Figure 1).
+
+
+
+```{r, fig.cap="Figure 2 - Image Preprocessing Techniques applied onto the an example image"}
 # image output formatting
 par(mfrow=c(2,3), mai=c(0.5, 0.5, 0, 1))
 
@@ -118,27 +151,32 @@ text(x = 20, y = 150, label = "Adding Noise", adj = c(0,1), col = "orange", cex 
 ```
 
 
-
-
-
-
 ### Developed Models
-#### AlexNet
-#### Random Forest 
-### Evaluation Strategies 
-#### Accuracy
-#### Robustness
-#### Interpretability 
-#### qualitative to ensure communication 
+
+We consider a CNN model and a classical machine learning model. For our CNN , we chose AlexNet which contains 8 layers. Given that AlexNet has cemented itself as an influential model (Russakovsky et al., 2015), we believe it serves as a good point of comparison to classical machine learning techniques. We hypothesised that a smaller number of layers would allow for a simpler and more straightforward interpretation of the results and model. The models were trained over 100 epochs, with a learning rate of 10^-12, an SGD optimizer, and a categorical cross entropy loss function. The image input was resized to 224 x 224 to be fed into the models. Each Alex Net model is trained using a different training set and saved as RDS objects ([here](https://drive.google.com/file/d/1LtC88X1hY5QR9BV8P8yoOE3AHAZ5dPMY/view?usp=sharing )). The script to generate the models can be found [here](https://github.sydney.edu.au/anad8554/Image7/blob/main/models/alexnet_multiple.Rmd).
+For our traditional ML model, we chose random forest classification, as its large number of decision trees provide additional robustness and prevent overfitting.  Our random forest models work by reading the images in and then extracting the features from inside the boundaries of the cell images. These extracted image features are then fed into our model. Each random forest model is trained using a different training set as defined above and saved as RDS objects (https://github.sydney.edu.au/anad8554/Image7/tree/main/RF%20Models%20(Merged)
+https://github.sydney.edu.au/anad8554/Image7/tree/main/RF%20Models%20(Removed) ). The script to generate each model can be found here (https://github.sydney.edu.au/anad8554/Image7/tree/main/RF%20Code%20(Final))  
+
+### Evaluation Strategies
+
+Next, the evaluation strategies are established. To assess and compare model performance and compare the impacts of the training set for both random forest and AlexNet, we consider accuracy and robustness. For the random forest models, we conduct 5-fold cross validation (Figure 1 panel A) repeated five times. This reduces overfitting and bias as well as asses the generalizability of our results. 
+For AlexNet, the dataset is split into 80% training set and 20% testing set. The out of sample accuracy is calculated using the testing set (Figure 2 Panel B) A robustness test (Winder AI, 2017) is conducted on the best performing model for AlexNet and RF. Gaussian noise is added to the images in the validation set and the accuracy is compared before and after.  
+To convey the impact of data wrangling techniques to our audience, we emphasize the interpretability of our models (Sarkar, 2019). Random forests, by their nature, are interpretable, however AlexNet is not. To facilitate this, we integrate heat activation maps into our CNN model (Figure 1 Panel b) enabling us to better discern the effects of the chosen pre-processing technique.
+Once the results are determined, we incorporate these features into our final shiny app. To evaluate the effectiveness of our communication, we conduct two interviews with a medical science student and a data science student and assess their comprehension of the app.
 
 
-## Results - Research Question 
+
+## Results - Part A
 
 ### Performance 
+For each training set, augmented data was utilized, and each model was trained individually using its respective training set (Figure 1). To assess the performance, out of sample accuracy was calculated for AlexNet, where 80% of the dataset was used for training and 20% for testing. 5-fold cross validation was used to determine the average accuracy for the random forest models.  Considering 17 clusters, the baseline accuracy would be 6%, and both models surpassed this threshold with higher average accuracies. Notably, the random forest models exhibited an average accuracy that was ten times higher (~80%) than that of the AlexNet models (~8%) (Figure 3). 
+When comparing the two cluster alteration approaches, merged, and removed, there does not appear to be a large difference between the two across both random forest models and the alexNet models. The merged approach appears to have a higher accuracy for the AlexNet models (Figure 3 Panel B) whereas the removed approach appears to have a slightly higher accuracy on average for random forest (Figure 3 Panel A). There is not enough evidence however to conclude that either approach made a significant impact. 
+The most interesting finding is comparing the impact of the different pre-processing techniques. Implementing a boundary significantly increased accuracy from 4% to an average of 6% (Figure 3 Panel C) for alexNet. However, incorporating additional techniques did not have a large impact, as the maximum difference in accuracy between any two pre-processing techniques was only 0.03%. It is worth noting that the models trained using images subjected to the power law technique showed the best performance (Figure 3). 
+Since the different pre-processing techniques do not appear to have a large impact, perhaps this proves that both models are very robust. To verify this, the best model from the random forest models and the alexnet models were picked (power law). The accuracy of the random forest power law model was initially 80%, but it dropped to 9% when random noise was added to the test set. On the other hand, the accuracy of the AlexNet power law model started at 8% and slightly decreased to 7.8%. Therefore, the random forest is not very robust to input images whereas AlexNet is. These results cannot be generalized to any images, however as the models were trained using only the augmented data. 
 
-#### Accuracy
 
-```{r}
+```{r, fig.cap = "Figure 3 - Out of Sample Accuracy for All models. Panel A shows cross fold validation Accuracy for Random forest models using the removed cluster appraoch.  Approach - Panel B shows  cross fold validation Accuracy for Random forest models using the merged cluster approach. - Panel C shows Accuracy for all CNN models fo rboth cluster approaches." }
+
 cnn_accuracies <- readRDS("CNN Accuracy Data.rds")
 rf_cv_merged <- readRDS("Random Forest CV Merged Data.rds")
 rf_cv_removed <- readRDS("Random Forest CV Removed Data.rds")
@@ -148,14 +186,14 @@ p <- ggplot(data = rf_cv_merged, aes(x = model, y = accuracy, fill = model)) +
   geom_jitter(size = 1) + 
   #we apply title to every plot, not just fig
   labs(x = "Random Forest Model (Merged)", y = "5-fold CV Accuracy", fill = "Model/Dataset") +
-  theme(axis.text.x = element_text(angle = 45, size = 3)) 
+  theme(axis.text.x = element_text(angle = 45, size = 5)) 
 #ggplotly(p)
 
 p2 <- ggplot(data = cnn_accuracies, aes(x = cnn_model_technique, y = accuracy, fill = data_type)) + 
   geom_bar(stat = 'identity', width = 0.7, position = position_dodge(width = 0.8)) + 
-  theme(axis.text.x = element_text(angle = 45, size = 3)) +
+  theme(axis.text.x = element_text(angle = 45, size = 5)) +
   labs(fill = "Model/Dataset") + 
-  xlab("CNN Model") + 
+  xlab("AlexNet Model") + 
   ylab("Accuracy")
 #ggplotly(p2)
 
@@ -163,7 +201,7 @@ p3 <- ggplot(data = rf_cv_removed, aes(x = model, y = accuracy, fill = model)) +
   geom_boxplot(show.legend = FALSE) + 
   geom_jitter(size = 1) + 
   labs(x = "Random Forest Model (Removed)", y = "5-fold CV Accuracy", fill = "Model/Dataset") +
-  theme(axis.text.x = element_text(angle = 45, size = 3)) 
+  theme(axis.text.x = element_text(angle = 45, size = 5)) 
 #ggplotly(p3)
 
 leg <- get_legend(
@@ -188,31 +226,10 @@ plot_grid(title, prow, ncol=1, rel_heights = c(0.1, 1))
 ```
 
 
-#### Robustness
-**also mention generality of findings**
-
-```{r}
-# this is where all the code will be added --
-# for EVERYTHING 
-
-
-# get the models to generate accuracies
-# get the accuracies
-# plot the graph 
-
-# get the for the random forest model and explain how you can get the accruacies urself 
-# plot these both side by side with panel a and panel b 
-
-```
-
-
-```{r}
-# robustness test
-# do a before and after with the test data with and without noise again 
-# only get the values this time 
-```
-
 ### Interpretability  
+
+To understand how the AlexNet model “learns” each image, activation heatmaps are used. In figure 4 the original example image is passed into the model, and it is shown for both techniques that the features are gradually learnt. In layer 2, thresholding the original image shows there is more detection of a feature, for all 3 layers. 
+
 ```{r}
 
 # create model architecture with no weights - to load in models based on weights
@@ -269,9 +286,6 @@ create_model <- function(learning_rate = 0.000000000001, input_shape=c(224, 224,
 
 ```
 
-
-
-
 ```{r, output = FALSE, ouput = FALSE, warning=FALSE, message=FALSE}
 
 # load in example image
@@ -319,8 +333,6 @@ plot_channel <- function(channel) {
 }
 ```
 
-
-
 ```{r,  ouput = FALSE, warning=FALSE, message=FALSE}
 # thresholded image 
 
@@ -348,16 +360,13 @@ third_layer_activation_thresholding <- activations_thresholding[[3]]
 last_layer_activation_thresholding <- activations_thresholding[[8]]
 ```
 
-
-
-
-
 ```{r, figures-side, out.width="200%", fig.cap = "Figure 4: Activation Maps of Layers 1, 3 and 8 in AlexNet (Left to Right) The top layer shows activation plots with the original image. The second layer shows the activation plots with a thresholding technique applied on the original image"}
 
 
 # layout plots in 2x2 format
 par(mfrow=c(2,4))
 # firs layer channel 70
+
 img = image_read("images/cell_338.png")
 plot(img)
 plot_channel(first_layer_activation[1,,,70])
@@ -380,40 +389,28 @@ plot_channel(last_layer_activation_thresholding[1,,,300])
 
 
 
+## Results - Part B 
 
+In line with our objective, we wish to effectively communicate the importance of data wrangling techniques to our audience. Our product incorporates all AlexNet and random forest models, each trained with their respective training sets, to facilitate the comparison of performance. Our product can be accessed [here](https://github.sydney.edu.au/tzar0514/image7-shiny)
+A multiple tab layout was used to compartmentalise information (Figure 5). The first tab gives context and instructions to allow for usability for the target audience. The main features are included in the second two tabs “merge clusters” and “remove clusters” which include uploading an example image and boundaries, choosing a pre-processing technique and model. This then outputs the pre-processed image along with a predicted cluster. If the chosen model is CNN, then a heatmap is also presented. Interactivity within this aspect is to promote understanding of the data wrangling techniques and allow ease of comparison. Additional functionalities are present within the performance and Interpretability tab, for a more technical audience to understand the overall findings of this research question (Figure 5). These contain interactive boxplots and barplots, and detailed explanations about the accuracy, robustness, and interpretability of the models. Many models are not used in medical contexts as the decision-making process is unclear (Yang et al., 2022). The interpretability tab allows for an insight into the black box model.  
+Students typically view shiny apps positivity (González et al., 2018) to evaluate the apps effectiveness, two interviews were conducted with a data science student and a medical science student. The questions asked can be found here(appendix). The interviews were largely positive, and the data science student was able to effectively navigate and understand the product. The science student was able to understand the problem being solved and interpreting AlexNet, however more detail was required in terms of explaining concepts such as random forest.  
 
+![Figure 5 - Shiny App Workflow](resources/figures/shiny_flowchart.png)
 
-
-## Results - Product 
-
-### Clear description and illustration 
-
-### concepts from multiple disciplines 
-
-**add in the video maybe**
-
-### evaluation metric for the app - feedback and interview session 
 
 ## Discussion 
 
-### limitations 
-### issues with development process
-### issues with product
+### Limitations and shortcomings 
 
-### Future work
+There are naturally improvements to be made within this process. The limitations of our projects involve the training datasets themselves, despite the augmentation process. The clusters containing a smaller number of images were still potentially at risk of under sampling. There is risk of overfitting since we cannot generate new information through the augmentation process but rather artificial data. AlexNet takes in a RGB image which may have impacted performance as the input images were greyscale. Due to computational memory and speed, other CNN models such as ResNet and VGG were disregarded, however comparing the impacts of architectures alongside the different training sets would have allowed for the development of improved and more generalized models. Adding this to our shiny product would have allowed for a more comprehensive understanding of the impacts of data wrangling on different models. Similarly, random forest based on pixel input was not considered. 
+The shiny app was ultimately should have incorporated features for users with limited data science knowledge such as biologists or scientists in general.  This would have been explored via the adding overlays on the original cell images and regions of interest and providing a better understanding of the biological relevance of the clusters. 
+Since the models were trained using this specific dataset, comparison of pre trained models could have been incorporated  to assess their performance against different images to obtain more generalizable and robust results. In context of the biotech platforms, incorporating external data (such as cell location)  alongside the images may have proven beneficial in classifying the cells. Another option to consider is predicting the gene expression itself, as opposed to the predefined cluster labels. The clusters are determined via a k-means algorithm which  may have flaws if the original data is imbalanced (Kumar et al., 2015).
 
-### improvemtns in both discipline 
+To improve our product and extend our research question, comparison of different deep learning architectures would be explored. IN order to facilitate communication to our target audience and increase interpretability, visualisations of each layer for our AlexNet model would be added. This would be based on [add that link here]. 
 
 ## Conclusion 
 
-
-## add section explaining reprosucibiilty aspets
-- download the data form the link
-- get ac curacies of cnn, rf
-- get robustness values of cnn and rf 
-- get the cnn models from the google drive as well + the rf models
-- get the augmented data from script
-- get the techniques applied based on the script as well
+To conclude, there data wrangling techniques do have an impact on performance of both AlexNet and random forest. Adding boundaries and the power law technique increased accuracy, however there is insufficient evidence to claim that the impact was significant. AlexNet was found to be much more robust than random forest. Our shiny app presented as a learning tool and allowed to effective communication of theses principles to our target audience. 
 
 
 ## Student Contributions 
@@ -424,6 +421,29 @@ plot_channel(last_layer_activation_thresholding[1,,,300])
 **James**
 **George**
 **Nikki**
+
+
+## References
+
+10xGenomics. (2023). Fresh Frozen Mouse Brain for Xenium Explorer Demo. 10xgenomics.com. https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard
+
+Chai, J., Zeng, H., Li, A., & Ngai, E. W. T. (2021). Deep learning in computer vision: A critical review of emerging techniques and application scenarios. Machine Learning with Applications, 6, 100134. https://doi.org/10.1016/j.mlwa.2021.100134
+González, J. A., López, M., Cobo, E., & Cortés, J. (2018). Assessing Shiny apps through student feedback: Recommendations from a qualitative study. Computer Applications in Engineering Education, 26(5), 1813–1824. https://doi.org/10.1002/cae.21932
+
+Gurwitz, D. (2013). Expression profiling: a cost-effective biomarker discovery tool for the personal genome era. Genome Medicine, 5(5). https://doi.org/10.1186/gm445
+
+Kumar, Ch. N. S., Rao, K. N., Govardhan, A., & Sandhya, N. (2015). Subset K-Means Approach for Handling Imbalanced-Distributed Data. Advances in Intelligent Systems and Computing, 497–508. https://doi.org/10.1007/978-3-319-13731-5_54
+
+Russakovsky, O., Deng, J., Su, H., Krause, J., Satheesh, S., Ma, S., Huang, Z., Karpathy, A., Khosla, A., Bernstein, M., Berg, A. C., & Fei-Fei, L. (2015). ImageNet Large Scale Visual Recognition Challenge. International Journal of Computer Vision, 115(3), 211–252. https://doi.org/10.1007/s11263-015-0816-y
+
+Salvi, M., Acharya, U. Rajendra., Molinari, F., & Meiburger, Kristen. M. (2020). The impact of pre- and post-image processing techniques on deep learning frameworks: a comprehensive review for digital pathology image analysis. Computers in Biology and Medicine, 104129. https://doi.org/10.1016/j.compbiomed.2020.104129
+
+Sarkar, T. (2019, October 14). Activation maps for deep learning models in a few lines of code. Medium. https://towardsdatascience.com/activation-maps-for-deep-learning-models-in-a-few-lines-of-code-ed9ced1e8d21#:~:text=This%20gives%20you%20the%20ability
+
+Tachibana, Y., Obata, T., Kershaw, J., Sakaki, H., Urushihata, T., Omatsu, T., Kishimoto, R., & Higashi, T. (2020). The Utility of Applying Various Image Preprocessing Strategies to Reduce the Ambiguity in Deep Learning-based Clinical Image Diagnosis. Magnetic Resonance in Medical Sciences, 19(2), 92–98. https://doi.org/10.2463/mrms.mp.2019-0021
+Winder AI. (2017, December 21). Testing Model Robustness with Jitter. Winder.ai. https://winder.ai/testing-model-robustness-with-jitter/
+Yang, G., Ye, Q., & Xia, J. (2022). Unbox the black-box for the medical explainable AI via multi-modal and multi-centre data fusion: A mini-review, two showcases and beyond. Information Fusion, 77, 29–52. https://doi.org/10.1016/j.inffus.2021.07.016
+
 
 ## Appendix 
 
