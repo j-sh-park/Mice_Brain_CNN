@@ -8,131 +8,72 @@ The aim of our project is to determine the impact of preprocessing techniques on
 
 The CNN model used in our project is based on the AlexNet architecture.
 
+The Shiny App Github is located <a href="https://github.sydney.edu.au/tzar0514/image7-shiny">here</a>. To run the Shiny App, folllow the README file in that GitHub.
+
 ## Table of Content
 
-* [Getting Started](#start)
+* [Reproducing the Report](#start)
     * [Clone Repository](#clone)
-    * [Obtain CNN Models](#models)
-    * [RStudio & R](#rstudio)
     * [Install/Check Packages](#packages)
-* [Running & Usage](#run)
-   * [Usage](#usage)
-   * [Merge VS Remove Clusters](#clusters)
-   * [Performance Tab](#performance)
-   * [Interpretability Tab](#interpret)
-## Report
-* [Student Contributions](#contr)
-* [Exclusive summary](#summary)
-* [The report](#rep)
-* [Presentation of report](#pre)
-* [Criteria](#cri)
-  * [Aim and background](#aim)
-  * [Methods](#method)
-  * [Results](#result)
-* [Shortcoming](#short)
+* [Important Notice](#notice)
+* [Other Information/Resources](#others)
 
-## <div id="start">Getting Started</div>
+## <div id="start">Reproducing the Report</div>
 
 **IMPORTANT:** Please follow these steps sequentially in order to render the report.
 
-
-**IMPORTANT:** Please follow these steps sequentially in order to run our Shiny App successfully. The Shiny App Github is located <a href="https://github.sydney.edu.au/tzar0514/image7-shiny">here</a>.
+Due to the nature of our project, our report relies on cached files. All of which are in this repository or in Google Drive links provided at the end of this README, as well as in the report.
 
 ###  <div id="clone">Clone Repository</div>
 
-Clone this repository in order to obtain the Random Forest models, Shiny App script and other resources required.
+Clone this repository in order to obtain the RDS files of Random Forest accuracies, models, CNN accuracies and other resources required.
 
 ```shell
-git clone https://github.sydney.edu.au/tzar0514/image7-shiny
+git clone https://github.sydney.edu.au/anad8554/Image7/
 ```
-
-### <div id="models">Obtain CNN Models</div>
-
-1. Obtain our CNN models via this <a href="https://drive.google.com/file/d/1WQvHoY686EXpFOr6gDn77dOmZeEZvRUs/view?usp=share_link">link</a> (**WARNING:** This file is approxmately 2.4GB. It may take a few minutes depending on the strength of your network connection.) 
-
-2. After you have downloaded the zip file, please extract the `cnn_models` folder into the image7-shiny directory (i.e image7-shiny/cnn_models)
-
-### <div id="rstudio">RStudio & R</div>
-
-#### If you already have R & RStudio, skip this step!
-
-Our app runs on R and the shiny app has be to deployed via an R source file. As such, you must have RStudio and R language installed in your local machine. 
-Follow the installation guide <a href="https://rstudio-education.github.io/hopr/starting.html">here</a>.
 
 ### <div id="packages">Install/Check Packages</div>
 
-Our Shiny App requires the use of the following dependencies:
+Our Report requires the use of the following dependencies:
 
 - shiny
 - ggplot2
-- plotly
 - keras
 - EBImage
 - SpatialPack
 - pracma
 - randomForest
-- BiocGenerics
+- RBioFormats
+- tensorflow
+- cowplot
+- pracma
+- tidyverse
 
-Most of these packages can be installed via the standard way of `install.packages("package")`. 
+Please ensure all these packages are installed before knitting `report_draft.Rmd`.
 
-BiocGenerics and EBImage are R packages distributed as part of the Bioconductor project. To install this package, run R and enter:
+## <div id="notice">Important Notice</div>
 
-```shell
-install.packages("BiocManager")
-BiocManager::install("EBImage")
-```
+In the event you decide to run the models yourself, you may encounter some errors regarding the file data path. Always ensure that the data paths match.
+- A likely example is running `alexnet_multiple.Rmd` or `alexnet_without_boundaries.Rmd`. To run these properly, simply take these models out of the folder `tools` and put it into the same directory as the `report_draft.Rmd`.
 
-Once installed, simply load the library in using the standard manner with `library(package)`. 
+## <div id="others">Other Information/Resources</div>
 
-For more information on installation, visit these webpages:
-- <a href="https://bioconductor.org/packages/release/bioc/html/BiocGenerics.html">BiocGenerics Installation Guide</a>
--  <a href="https://bioconductor.org/packages/release/bioc/vignettes/EBImage/inst/doc/EBImage-introduction.html#1_Getting_started">EBImage Installation Guide</a>
+This section will provide links (which are also stated in the report) to additional resources you may need should you run the models yourself.
 
-### <div id="run">Running & Usage</div>
+- Original Data (No preprocessing techniques applied) - <a href="https://drive.google.com/drive/folders/1aA_-F5AWbB9r6-FBjk7jglopN9QfArbq?usp=sharing">Source</a>
+   - This link contains:
+      - `original_given`: the original dataset given by DATA3888 Teaching Team 
+      - `merged_clusters`: the dataset that merged clusters
+      - `removed_clusters`: the dataset that removed clusters
 
-Start a new R Project in RStudio in the same directory as `image7-shiny`. 
+- Unread Augmented Data (Preprocessing techniques have already been applied) - <a href="https://drive.google.com/drive/folders/1jp6Fo5gww6vW3T-Rr2S3D-zwoM2b0QIU?usp=sharing">Source</a> 
+   - Images that will need to be read in. **WARNING:** Reading images via `get_images()` in `alexnet_multiple.Rmd` may take up to 30 minutes. We provided an alternative to save computational time: **Read Augmented Data**  
+   - The conversion script to get this dataset from the original given data by the teaching team can be found <a href="https://github.sydney.edu.au/anad8554/Image7/blob/main/tools/Image_convert.Rmd">here</a>
 
-Open the file `image7_shiny` in RStudio and click on 'Run App' on the top right.
+- Read Augmented Data (Preprocessing techniques have already been applied) - <a href="https://drive.google.com/drive/folders/1S1ASvH6tAZt5VUVI_jazss9LAjhVRmvg?usp=sharing">Source</a> 
+   - Images that have been read into a variable and saved into an RDS file for each dataset. Using this will only take a few seconds compared to Unread.
+   - The conversion script can be found <a href="https://github.sydney.edu.au/anad8554/Image7/blob/main/readingImages.Rmd">here<a>
 
-#### <div id="usage">Usage/Instructions</div>
-
-The introduction tab should inform you how to use and navigate around the app. To reiterate the instructions:
-
-1. Upload a PNG image of a cell. **IMPORTANT:** It should be named in this specific formart: `cell_<ID>.png` where `ID` is any numeric value.
-   - An image will appear on the right. That is your input image. 
-
-2. Select the preprocessing technique of your choice.
-   - Another image will appear on the right beneath the text. This is your input image with the chosen preprocessing technique applied.
+- CNN Models (Weights) - <a href="https://drive.google.com/file/d/1LtC88X1hY5QR9BV8P8yoOE3AHAZ5dPMY/view?usp=drive_link">Source</a>
+   - Actual model architecure and how to save the full model can be found in `tools/alexnet_multiple.Rmd`
    
-3. If you have chosen a preprocessing technique with boundaries, upload the CSV file containing the x and y vertices of the region of interest in your image.
-
-4. Select between Random Forest and CNN as your model to predict the image with.
-
-#### <div id="clusters">Difference between Merge & Remove Clusters</div>
-
-You can also choose between `Merge` and `Remove` clusters to use models that were trained on the two different datasets.
-- Merge Clusters involved merging 28 classes based on their <a href="https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_analysis_summary.html">UMAP projection</a> down to 17 clusters
-- Removed clusters involved removing clusters that contained too few images
-
-#### <div id="performance">Performance Tab</div>
-
-This tab informs the user about accuracy and robustness of the CNN and Random Forest models, as well as comparisons between the two models.
-   
-#### <div id="interpret">Interpretability Tab</div>
-
-This tab informs the user about interpretability of the CNN and Random Forest models, as well as comparisons between the two models. More information is provided for the CNN model as it is more of a black-box model as compared to Random Forest.
-
-### <div id="report">Report</div>
-### <div id="contr">Student Contributions</div>
-### <div id="summary">Exclusive summary</div>
-### <div id="rep">The report</div>
-### <div id="pre">Presentation of report</div>
-### <div id="cri">Criteria</div>
-### <div id="aim">Aim and background</div>
-### <div id="method">Methods</div>
-#### Method A
-#### Method B
-### <div id="result">Results</div>
-#### Method A
-#### Method B
-### <div id="short">Shortcoming</div>
