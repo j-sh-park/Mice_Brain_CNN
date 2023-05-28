@@ -411,6 +411,7 @@ Additional functionalities are present within the Performance and Interpretabili
 
 Students typically view Shiny apps positively (González et al., 2018). To evaluate the app's effectiveness, two interviews were conducted with a data science student and a medical science student. The questions asked can be found [here](#interview_questions). The interviews were largely positive, and the data science student was able to effectively navigate and understand the product. They rated the usability a 9/10. They found the performance tab comprehensive and appreciated the interactive plots. The science student was able to understand the problem being solved, was able to navigate the app and upload an image successfully. They rated the usability a 7/10. The main point of improvement was to include more details in terms of basic concepts such as RF. They found the interpretability tab helpful and commented on a similar feature for RF.
 
+
 <a id="fig5"></a>
 
 ![Figure 5 - Shiny App Workflow.](resources/figures/shiny_flowchart.png)
