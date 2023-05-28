@@ -414,13 +414,33 @@ To conclude, there data wrangling techniques do have an impact on performance of
 
 
 ## Student Contributions 
+**Thoon**
+
+- Shiny app development (incorporating all elements), building and training CNN model, making Figma flowcharts (Figure 1, Shiny App) for Report, Report formatting
+
+
+**Ian** 
+
+- Dataset preparation(data cleaning,Image augmentation, Merged/Removed clusters, Image preprocessing),  training CNN models.
+
+
+**George**
+
+- Trained random forest models, made accuracy graphs for report (Figure 3) and Shiny app. Talked about the practical relevance of our project and discussed possible future work.
+
+
+**James**
+
+- Training cnn models, Figma flowcharts for presentation, data wrangling(get_images()), Aim and Background and Developed Models (AlexNet) 
 
 **Akasha**
-**Thoon**
-**Ian**
-**James**
-**George**
+
+- Evaluation strategies (accuracy, robustness, interpretability) and model training for project, presentation and report. Writing out the results (part a and b), model development, discussion for report. Finalising and consolidating report writing. Ensured structured meetings and allocation of roles and timely submission
+
+
 **Nikki**
+
+- image preprocessing(opening), Shiny app structure layout development, future work, limitation and conclusion for Report.
 
 
 ## References
