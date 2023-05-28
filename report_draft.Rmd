@@ -201,8 +201,19 @@ leg <- get_legend(
     theme(legend.position = "bottom")
 )
 
+title <- ggdraw() + 
+  draw_label(
+    "RF and CNN Model Accuracies",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0,
+    vjust = 4
+  ) 
+
 #grid.arrange(p, p3, p2, ncol=2, nrow=2)
-plot_grid(p3 + theme(legend.position="none"), p + theme(legend.position="right"), p2 + theme(legend.position="right"), labels = c("A", "B", "C"), vjust = 1)
+prow <- plot_grid(p3 + theme(legend.position="none"), p + theme(legend.position="right"), p2 + theme(legend.position="right"), labels = c("A", "B", "C"), vjust = 1)
+
+plot_grid(title, prow, ncol=1, rel_heights = c(0.1, 1))
 ```
 
 
